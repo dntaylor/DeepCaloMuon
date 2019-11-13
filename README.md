@@ -20,4 +20,5 @@ pip install --upgrade tensorflow-gpu==1.12
 pip install --upgrade keras==2.2.4 # works with 1.12
 pip install --upgrade matplotlib
 pip install gpustat
+pip install hyperopt
 ```

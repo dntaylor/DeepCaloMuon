@@ -5,7 +5,29 @@ import glob
 import json
 import pickle
 from random import shuffle
+import uuid
+import datetime
 
+parser = argparse.ArgumentParser(description='Train')
+parser.add_argument('convertDir', type=str, 
+                    help='Directory of input numpy arrays')
+parser.add_argument('trainDir', type=str,
+                    help='Output directory')
+parser.add_argument('numX', type=int,
+                    help='The number of X arrays')
+
+
+args = parser.parse_args()
+
+# TODO, continue training?
+inDir = args.convertDir
+outDir = args.trainDir
+if os.path.exists(outDir):
+    print(outDir,'already exists')
+    sys.exit(0)
+
+
+# now import heavier stuff
 import numpy as np
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, LSTM, Convolution1D
@@ -19,32 +41,17 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from keras import backend as k
 
+from hyperopt import hp, tpe, fmin, STATUS_OK
+
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 from utilities import python_mkdir
 
-parser = argparse.ArgumentParser(description='Train')
-parser.add_argument('convertDir', type=str, 
-                    help='Directory of input numpy arrays')
-parser.add_argument('trainDir', type=str,
-                    help='Output directory')
-parser.add_argument('numX', type=int,
-                    help='The number of X arrays')
-
-
-args = parser.parse_args()
-
-
-# TODO, continue training?
-inDir = args.convertDir
-outDir = args.trainDir
-if os.path.exists(outDir):
-    print(outDir,'already exists')
-    sys.exit(0)
 python_mkdir(outDir)
 truth_classes = ['pion','muon']
+optimize = True
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -123,12 +130,17 @@ def load_data():
 ### Model ###
 #############
 
-def build_model(input_shapes, num_classes, 
-                batchnorm=True, momentum=0.6, 
-                dropoutRate=0.2, lr=0.0001, 
-                width = 128, depth=4,
-                pattern=[], kernel=[],
-                doLSTM=True):
+def build_model(input_shapes, num_classes, hyperspace):
+    doLSTM = hyperspace.get('doLSTM')
+    lstmWidth = int(hyperspace.get('lstmWidth'))
+    depth = int(hyperspace.get('depth'))
+    width = int(hyperspace.get('width'))
+    batchnorm = hyperspace.get('batchnorm')
+    momentum = hyperspace.get('momentum')
+    dropoutRate = hyperspace.get('dropoutRate')
+    lr = hyperspace.get('lr')
+    pattern = []
+    kernel = []
     if len(kernel) != len(pattern): kernel = [1]*len(pattern)
 
     inputs = [Input(shape=s) for s in input_shapes]
@@ -146,7 +158,7 @@ def build_model(input_shapes, num_classes,
 
         # LSTM
         if doLSTM:
-            x = LSTM(128,go_backwards=True,implementation=2, name='{}_lstm'.format(1))(x)
+            x = LSTM(lstmWidth,go_backwards=True,implementation=2, name='{}_lstm'.format(1))(x)
             if batchnorm:
                 x = BatchNormalization(momentum=momentum,name='{}_lstm_batchnorm'.format(i))(x)
             x = Dropout(dropoutRate,name='{}_lstm_dropout'.format(i))(x)
@@ -182,6 +194,59 @@ def build_model(input_shapes, num_classes,
     )
     return model
 
+
+def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hyperspace):
+
+    model_uuid = str(uuid.uuid4())
+    model_time = datetime.datetime.now()
+    model_name = 'model_{}_{}'.format(model_time.strftime('%Y%m%d-%H%M%S'),model_uuid)
+
+    best_name = '{}/KERAS_check_best_{}.h5'.format(outDir,model_name)
+
+    callbacks = [
+        ModelCheckpoint(best_name, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False),
+        EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='min'),
+    ]
+    history = model.fit(X_train, Y_train,
+                        batch_size = 20000,
+                        epochs = 200,
+                        verbose = 0,
+                        validation_split = 0.1,
+                        shuffle = True,
+                        sample_weight = W_train,
+                        callbacks = callbacks,
+                        )
+
+    score = model.evaluate(X_test,Y_test,verbose=0)
+
+    result = {
+        'loss': score[0],
+        'space': hyperspace,
+        'history': history.history,
+        'status': STATUS_OK,
+        'model_name': model_name,
+        'model_uuid': model_uuid,
+    }
+    result_path = '{}/result_{}.json'.format(outDir,model_name)
+    with open(result_path,'w') as f:
+        json.dump(result,f)
+
+    return result
+
+
+
+def prepare_optimize_model():
+    X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()
+    input_shapes = [X_test[i].shape[1:] for i in range(nx)]
+    num_classes = Y_test.shape[1]
+
+    build_model_hyperopt = lambda hyperspace: build_model(input_shapes,num_classes,hyperspace)
+
+    train_model_hyperopt = lambda hyperspace: train_model(build_model_hyperopt(hyperspace),X_train,X_test,Y_train,Y_test,W_train,W_test,hyperspace)
+
+    return train_model_hyperopt
+
+
 callbacks = [
     ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False),
     EarlyStopping(monitor='val_loss', patience=200, verbose=1, mode='min'),
@@ -190,53 +255,85 @@ callbacks = [
 
 modelArgs = {
     'doLSTM': False,
+    'lstmWidth': 128,
     'depth': 4,
     'width': 128,
+    'pattern': [],
+    'kernel': [],
     'batchnorm': True,
     'momentum': 0.6, # 0.6-0.85 for large batches (5k+), larger (0.9-0.99) for smaller batches
     'dropoutRate': 0.2,
     'lr': 1e-4,
 }
 
-X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()
-print([xt.shape for xt in X_train])
-model = build_model([X_test[i].shape[1:] for i in range(nx)],Y_test.shape[1],**modelArgs)
-model.summary()
+hyperspace = {
+    'doLSTM': hp.choice('doLSTM',[True,False]),
+    'lstmWidth': hp.quniform('lstmWidth',32,256,1),
+    'depth': hp.quniform('depth',1,8,1),
+    'width': hp.quniform('width',32,256,1),
+    'batchnorm': hp.choice('batchnorm',[True,False]),
+    'momentum': hp.loguniform('momentum',-0.6,-0.01),
+    'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
+    'lr': hp.loguniform('lr',-12,-5),
+}
 
-history = model.fit(X_train, Y_train,
-                    batch_size = 20000, 
-                    epochs = 1000, 
-                    verbose = 1,
-                    validation_split = 0.1,
-                    shuffle = True,
-                    sample_weight = W_train,
-                    callbacks = callbacks,
-                    )
+if optimize:
+    optimize_model = prepare_optimize_model()
 
-hname = '{}/history.json'.format(outDir)
-with open(hname,'w') as f:
-    json.dump(history.history,f)
+    best = fmin(
+        optimize_model,
+        hyperspace,
+        algo = tpe.suggest,
+        max_evals = 50,
+    )
 
-# plot loss and accurancy
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-acc = history.history['acc']
-val_acc = history.history['val_acc']
+    print(best)
 
-epoch_count = range(1, len(loss) + 1)
+    
+    
+else:
+    X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()
+    print([xt.shape for xt in X_train])
 
-plt.figure()
-plt.plot(epoch_count, loss, 'r--')
-plt.plot(epoch_count, val_loss, 'b-')
-plt.legend(['Train', 'Validation'])
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.savefig('{}/loss.png'.format(outDir))
+    model = build_model([X_test[i].shape[1:] for i in range(nx)],Y_test.shape[1],**modelArgs)
+    model.summary()
+    
+    history = model.fit(X_train, Y_train,
+                        batch_size = 20000, 
+                        epochs = 1000, 
+                        verbose = 1,
+                        validation_split = 0.1,
+                        shuffle = True,
+                        sample_weight = W_train,
+                        callbacks = callbacks,
+                        )
 
-plt.figure()
-plt.plot(epoch_count, acc, 'r--')
-plt.plot(epoch_count, val_acc, 'b-')
-plt.legend(['Train', 'Validation'])
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.savefig('{}/accuracy.png'.format(outDir))
+    
+
+    hname = '{}/history.json'.format(outDir)
+    with open(hname,'w') as f:
+        json.dump(history.history,f)
+    
+    # plot loss and accurancy
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    acc = history.history['acc']
+    val_acc = history.history['val_acc']
+    
+    epoch_count = range(1, len(loss) + 1)
+    
+    plt.figure()
+    plt.plot(epoch_count, loss, 'r--')
+    plt.plot(epoch_count, val_loss, 'b-')
+    plt.legend(['Train', 'Validation'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.savefig('{}/loss.png'.format(outDir))
+    
+    plt.figure()
+    plt.plot(epoch_count, acc, 'r--')
+    plt.plot(epoch_count, val_acc, 'b-')
+    plt.legend(['Train', 'Validation'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.savefig('{}/accuracy.png'.format(outDir))

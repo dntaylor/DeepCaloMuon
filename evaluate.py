@@ -71,8 +71,12 @@ def plot_confusion_matrix(savename,y_true, y_pred, classes,
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
+    print(classes)
+    print(cm)
+
     fig, ax = plt.subplots()
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    ax.set_ylim(-0.5,cm.shape[0]-0.5)  # hack for matplotlib 3.1.1; 3.1.2 works fine
     ax.figure.colorbar(im, ax=ax)
     ax.set(xticks=np.arange(cm.shape[1]),
            yticks=np.arange(cm.shape[0]),
@@ -100,8 +104,33 @@ def plot_roc_curve(savename,y_test,y_score,classes):
     roc_auc = dict()
     result = {}
     for i in range(len(classes)):
-        fpr[i], tpr[i], wp = roc_curve(y_test[:, i], y_score[:, i])
+        fpr[i], tpr[i], wp = roc_curve(y_test[:, i], y_score[:, i], drop_intermediate=True)
         roc_auc[i] = auc(fpr[i], tpr[i])
+        # overwrite to make smaller lists
+        mind = 1e-3
+        keep = []
+        # via wp
+        #prev = 999
+        #for wi,w in enumerate(wp):
+        #    if abs(prev-w)>mind:
+        #        prev = w
+        #        keep += [True]
+        #    else:
+        #        keep += [False]
+        # via tpr
+        prev = -999
+        for ti,t in enumerate(tpr[i]):
+            if abs(prev-t)>mind:
+                prev = t
+                keep += [True]
+            else:
+                keep += [False]
+        keep[0] = True
+        keep[-1] = True
+        keep = np.array(keep)
+        fpr[i] = fpr[i][keep]
+        tpr[i] = tpr[i][keep]
+        wp = wp[keep]
         class_result = {'tpr': tpr[i].tolist(), 'fpr': fpr[i].tolist(), 'wps':wp.tolist(), 'auc': roc_auc[i]}
         classname = savename+'_'+classes[i]
         result[classes[i]] = class_result
