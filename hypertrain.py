@@ -131,14 +131,14 @@ def load_data():
 #############
 
 def build_model(input_shapes, num_classes, hyperspace):
-    doLSTM = hyperspace.get('doLSTM')
-    lstmWidth = int(hyperspace.get('lstmWidth'))
-    depth = int(hyperspace.get('depth'))
-    width = int(hyperspace.get('width'))
-    batchnorm = hyperspace.get('batchnorm')
-    momentum = hyperspace.get('momentum')
-    dropoutRate = hyperspace.get('dropoutRate')
-    lr = hyperspace.get('lr')
+    doLSTM = hyperspace.get('doLSTM',False)
+    lstmWidth = int(hyperspace.get('lstmWidth',128))
+    depth = int(hyperspace.get('depth',4))
+    width = int(hyperspace.get('width',128))
+    batchnorm = hyperspace.get('batchnorm',True)
+    momentum = hyperspace.get('momentum',0.6)
+    dropoutRate = hyperspace.get('dropoutRate',0.2)
+    lr = hyperspace.get('lr',1e-4)
     pattern = []
     kernel = []
     if len(kernel) != len(pattern): kernel = [1]*len(pattern)
@@ -267,12 +267,16 @@ modelArgs = {
 }
 
 hyperspace = {
-    'doLSTM': hp.choice('doLSTM',[True,False]),
-    'lstmWidth': hp.quniform('lstmWidth',32,256,1),
+    'doLSTM': hp.choice('doLSTM',[
+        (True, hp.quniform('lstmWidth',32,256,1)),
+        (False, 0)
+    ]),
     'depth': hp.quniform('depth',1,8,1),
     'width': hp.quniform('width',32,256,1),
-    'batchnorm': hp.choice('batchnorm',[True,False]),
-    'momentum': hp.loguniform('momentum',-0.6,-0.01),
+    'batchnorm': hp.choice('batchnorm',[
+        (True, hp.loguniform('momentum',-0.6,-0.01)),
+        (False, 0)
+    ]),
     'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
     'lr': hp.loguniform('lr',-12,-5),
 }
@@ -284,7 +288,7 @@ if optimize:
         optimize_model,
         hyperspace,
         algo = tpe.suggest,
-        max_evals = 50,
+        max_evals = 100,
     )
 
     print(best)
