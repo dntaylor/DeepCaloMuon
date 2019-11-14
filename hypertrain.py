@@ -23,10 +23,10 @@ args = parser.parse_args()
 inDir = args.convertDir
 outDir = args.trainDir
 optimize = True
-trials = '{}/trials'.format(outDir)
+trials_file = '{}/trials'.format(outDir)
 if os.path.exists(outDir):
     print(outDir,'already exists')
-    if optimize and os.path.exists(trials):
+    if optimize and os.path.exists(trials_file):
         print('continuing optimization')
     else:
         print('exiting')
@@ -47,7 +47,8 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from keras import backend as k
 
-from hyperopt import hp, tpe, fmin, STATUS_OK
+from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
+import joblib
 
 import matplotlib as mpl
 mpl.use('Agg')
@@ -226,6 +227,7 @@ def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hypers
 
     result = {
         'loss': score[0],
+        'acc': score[1],
         'space': hyperspace,
         'history': history.history,
         'status': STATUS_OK,
@@ -279,25 +281,38 @@ hyperspace = {
     'depth': hp.quniform('depth',1,8,1),
     'width': hp.quniform('width',32,256,1),
     'batchnorm': hp.choice('batchnorm',[
-        (True, hp.loguniform('momentum',-0.6,-0.01)),
+        #(True, hp.loguniform('momentum',-0.6,-0.01)),
+        (True, hp.choice('momentum',[0.6])),
         (False, 0)
     ]),
-    'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
+    #'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
+    'dropoutRate': hp.choice('dropoutRate',[0.2]),
     'lr': hp.loguniform('lr',-12,-5),
 }
 
 if optimize:
     optimize_model = prepare_optimize_model()
 
+    max_evals = 10
+
+    try:
+        trials = joblib.load(trials_file)
+        evals_loaded_trials = len(trials.statuses())
+        max_evals += evals_loaded_trials
+    except FileNotFoundError:
+        trials = Trials()
+
     best = fmin(
         optimize_model,
         hyperspace,
         algo = tpe.suggest,
-        max_evals = 100,
-        filename=trials,
+        max_evals = max_evals,
+        trials=trials,
     )
 
     print(best)
+
+    joblib.dump(trials, trials_file, compress=('gzip', 3))
 
     
     
