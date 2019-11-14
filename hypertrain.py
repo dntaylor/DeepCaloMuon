@@ -64,6 +64,16 @@ config.gpu_options.allow_growth = True
 config.gpu_options.per_process_gpu_memory_fraction = 0.6
 k.tensorflow_backend.set_session(tf.Session(config=config))
 
+if optimize:
+    max_evals = 10
+
+    try:
+        trials = joblib.load(trials_file)
+        evals_loaded_trials = len(trials.statuses())
+        max_evals += evals_loaded_trials
+    except FileNotFoundError:
+        trials = Trials()
+
 # load all at once
 
 nx = args.numX
@@ -203,6 +213,9 @@ def build_model(input_shapes, num_classes, hyperspace):
 
 def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hyperspace):
 
+    # save the trials before fit (to save the previous)
+    joblib.dump(trials, trials_file, compress=('gzip', 3))
+
     model_uuid = str(uuid.uuid4())
     model_time = datetime.datetime.now()
     model_name = 'model_{}_{}'.format(model_time.strftime('%Y%m%d-%H%M%S'),model_uuid)
@@ -292,15 +305,6 @@ hyperspace = {
 
 if optimize:
     optimize_model = prepare_optimize_model()
-
-    max_evals = 10
-
-    try:
-        trials = joblib.load(trials_file)
-        evals_loaded_trials = len(trials.statuses())
-        max_evals += evals_loaded_trials
-    except FileNotFoundError:
-        trials = Trials()
 
     best = fmin(
         optimize_model,
