@@ -214,9 +214,14 @@ linears = result['linear']
 X0 = X[0]
 pvals = X[0][:,pcol]
 etavals = X[0][:,etacol]
-#pvals = pvals*stds[pvar] + means[pvar]
-pvals = pvals*(linears[pvar][1]-linears[pvar][0])+linears[pvar][0]
-etavals = np.abs(etavals*stds[etavar] + means[etavar])
+if pvar in linears:
+    pvals = pvals*(linears[pvar][1]-linears[pvar][0])+linears[pvar][0]
+else:
+    pvals = pvals*stds[pvar] + means[pvar]
+if etavar in linears:
+    etavals = etavals*(linears[etavar][1]-linears[etavar][0])+linears[etavar][0]
+else:
+    etavals = np.abs(etavals*stds[etavar] + means[etavar])
 
 print(pvals)
 print(etavals)
