@@ -6,6 +6,28 @@ import json
 import pickle
 from random import shuffle
 
+parser = argparse.ArgumentParser(description='Train')
+parser.add_argument('convertDir', type=str, 
+                    help='Directory of input numpy arrays')
+parser.add_argument('trainDir', type=str,
+                    help='Output directory')
+parser.add_argument('numX', type=int,
+                    help='The number of X arrays')
+
+
+args = parser.parse_args()
+
+
+# TODO, continue training?
+inDir = args.convertDir
+outDir = args.trainDir
+if os.path.exists(outDir):
+    print(outDir,'already exists')
+    sys.exit(0)
+
+
+
+
 import numpy as np
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, LSTM, Convolution1D
@@ -25,24 +47,6 @@ import matplotlib.pyplot as plt
 
 from utilities import python_mkdir
 
-parser = argparse.ArgumentParser(description='Train')
-parser.add_argument('convertDir', type=str, 
-                    help='Directory of input numpy arrays')
-parser.add_argument('trainDir', type=str,
-                    help='Output directory')
-parser.add_argument('numX', type=int,
-                    help='The number of X arrays')
-
-
-args = parser.parse_args()
-
-
-# TODO, continue training?
-inDir = args.convertDir
-outDir = args.trainDir
-if os.path.exists(outDir):
-    print(outDir,'already exists')
-    sys.exit(0)
 python_mkdir(outDir)
 truth_classes = ['pion','muon']
 
