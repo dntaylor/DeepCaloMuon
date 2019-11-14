@@ -274,6 +274,8 @@ def normalize(df):
             df[key] = df[key].apply(lambda x: [-5 if ix<-5 else ix for ix in x])
 
     for key in branches:
+        if df[key].dtype==object: # needed in pandas 0.25.3
+            df[key] = df[key].apply(lambda row: np.array(row))
         if key in linear_branches:
             df[key] = (df[key].clip(*linear_branches[key])-linear_branches[key][0])/(linear_branches[key][1]-linear_branches[key][0])
         else:
@@ -311,6 +313,9 @@ def convert_fname(fname,i):
 
         # throw out 80% pions
         if not isval: df = df.drop(df[df['pion']==1].sample(frac=0.8).index)
+
+        # throw out barrel
+        if not isval: df = df[df['muon_innerTrack_eta'].abs()>1.566] # HE start full depth
     
         # calculate weight
         print('Weighting',i)

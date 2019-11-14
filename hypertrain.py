@@ -22,9 +22,15 @@ args = parser.parse_args()
 # TODO, continue training?
 inDir = args.convertDir
 outDir = args.trainDir
+optimize = True
+trials = '{}/trials'.format(outDir)
 if os.path.exists(outDir):
     print(outDir,'already exists')
-    sys.exit(0)
+    if optimize and os.path.exists(trials):
+        print('continuing optimization')
+    else:
+        print('exiting')
+        sys.exit(0)
 
 
 # now import heavier stuff
@@ -51,7 +57,6 @@ from utilities import python_mkdir
 
 python_mkdir(outDir)
 truth_classes = ['pion','muon']
-optimize = True
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -289,6 +294,7 @@ if optimize:
         hyperspace,
         algo = tpe.suggest,
         max_evals = 100,
+        filename=trials,
     )
 
     print(best)
