@@ -266,7 +266,8 @@ def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hypers
 
 
     result = {
-        'loss' : score[0]*(1+(di/n)**2),
+        #'loss' : score[0]*(1+(di/n)**2),
+        'loss' : score[0],
         'test_loss': score[0],
         'test_acc': score[1],
         'space': hyperspace,
@@ -329,7 +330,8 @@ hyperspace = {
     #'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
     'dropoutRate': hp.choice('dropoutRate',[0.2]),
     'lr': hp.loguniform('lr',-12,-5),
-    'epochs': hp.quniform('epochs',10,400,1),
+    #'epochs': hp.quniform('epochs',10,400,1),
+    'epochs': hp.choice('epochs',[200]),
 }
 
 if optimize:
