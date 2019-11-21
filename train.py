@@ -25,7 +25,7 @@ if os.path.exists(outDir):
     print(outDir,'already exists')
     sys.exit(0)
 
-
+doElectron = False
 
 
 import numpy as np
@@ -48,7 +48,10 @@ import matplotlib.pyplot as plt
 from utilities import python_mkdir
 
 python_mkdir(outDir)
-truth_classes = ['pion','muon']
+if doElectron:
+    truth_classes = ['pion','muon','electron']
+else:
+    truth_classes = ['pion','muon']
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True

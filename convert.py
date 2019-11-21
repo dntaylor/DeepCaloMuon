@@ -44,6 +44,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%
 NTHREADS = 16
 parallel = True
 vectorInput = False
+doElectron = False
 
 inDir = args.rootDir
 outDir = args.convertDir
@@ -56,7 +57,10 @@ python_mkdir(outDir)
 fnames = glob.glob('{}/*.root'.format(inDir))
 treename = 'muonTree/MuonTree'
 # must create these branches, they are what is output
-out_truth = ['pion','muon']
+if doElectron:
+    out_truth = ['pion','muon','electron']
+else:
+    out_truth = ['pion','muon']
 # weight bins
 weight_bins = [
     # muon_innerTrack_p
@@ -134,6 +138,7 @@ for fname in fnames:
         df = df[(df['muon_gen_sim_pdgId'].abs()==13) | (df['muon_gen_sim_pdgId'].abs()==211)].copy()
         df['muon'] = df['muon_gen_sim_pdgId'].abs()==13
         df['pion'] = df['muon_gen_sim_pdgId'].abs()==211
+        df['electron'] = df['muon_gen_sim_pdgId'].abs()==11
 
         for truth in out_truth:
             hist, xedges, yedges = np.histogram2d(
@@ -310,12 +315,16 @@ def convert_fname(fname,i):
         if not isval: df = df[(df['muon_gen_sim_pdgId'].abs()==13) | (df['muon_gen_sim_pdgId'].abs()==211)].copy()
         df['muon'] = df['muon_gen_sim_pdgId'].abs()==13
         df['pion'] = df['muon_gen_sim_pdgId'].abs()==211
+        df['electron'] = df['muon_gen_sim_pdgId'].abs()==11
+        for t in out_truth:
+            print(t,df[t].sum())
 
         # throw out 80% pions
         if not isval: df = df.drop(df[df['pion']==1].sample(frac=0.8).index)
 
         # throw out barrel
-        if not isval: df = df[df['muon_innerTrack_eta'].abs()>1.566] # HE start full depth
+        # test
+        #if not isval: df = df[df['muon_innerTrack_eta'].abs()>1.566] # HE start full depth
     
         # calculate weight
         print('Weighting',i)

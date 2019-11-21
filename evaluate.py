@@ -38,6 +38,7 @@ args = parser.parse_args()
 
 inDir = args.convertDir
 outDir = args.trainDir
+doElectron = False
 
 # load all at once
 nx = args.numX
@@ -191,7 +192,10 @@ np.set_printoptions(precision=2)
 
 Y_pred = np.argmax(prediction, axis=1)
 Y_truth = np.argmax(Y, axis=1)
-class_names = ['pion','muon']
+if doElectron:
+    class_names = ['pion','muon','electron']
+else:
+    class_names = ['pion','muon']
 plot_confusion_matrix('{}/confusion'.format(outDir), Y_truth, Y_pred, classes=class_names, normalize=True)
 
 # TODO: validate, written before the training was ready
@@ -310,8 +314,11 @@ for f,fname in enumerate(rootnames):
     tree = tfile.Get('muonTree/MuonTree')
     outfile = ROOT.TFile.Open(friendnames[f],'RECREATE')
     outtree = ROOT.TTree('ScoreTree','ScoreTree')
-    branches = {'muon_score_muon': array('f',[0]), 'muon_score_pion': array('f',[0]),
-                'muon_truth_muon': array('f',[0]), 'muon_truth_pion': array('f',[0]),}
+    branches = {'muon_score_muon': array('f',[0]), 'muon_score_pion': array('f',[0]), 
+                'muon_truth_muon': array('f',[0]), 'muon_truth_pion': array('f',[0]), }
+    if doElectron:
+        branches['muon_score_electron'] = array('f',[0])
+        branches['muon_truth_electron'] = array('f',[0])
     for label in branches:
         outtree.Branch(label, branches[label], '{}/F'.format(label))
 
@@ -320,6 +327,9 @@ for f,fname in enumerate(rootnames):
         branches['muon_score_muon'][0] = prediction[istart+i][1]
         branches['muon_truth_pion'][0] = Y[istart+i][0]
         branches['muon_truth_muon'][0] = Y[istart+i][1]
+        if doElectron:
+            branches['muon_score_electron'][0] = prediction[istart+i][2]
+            branches['muon_truth_electron'][0] = Y[istart+i][2]
         outtree.Fill()
     istart += tree.GetEntries()
     outfile.Write()

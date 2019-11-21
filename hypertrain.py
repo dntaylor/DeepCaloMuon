@@ -23,6 +23,7 @@ args = parser.parse_args()
 inDir = args.convertDir
 outDir = args.trainDir
 optimize = True
+doElectron = False
 trials_file = '{}/trials'.format(outDir)
 if os.path.exists(outDir):
     print(outDir,'already exists')
@@ -57,7 +58,10 @@ import matplotlib.pyplot as plt
 from utilities import python_mkdir
 
 python_mkdir(outDir)
-truth_classes = ['pion','muon']
+if doElectron:
+    truth_classes = ['pion','muon','electron']
+else:
+    truth_classes = ['pion','muon']
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -65,7 +69,7 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.6
 k.tensorflow_backend.set_session(tf.Session(config=config))
 
 if optimize:
-    max_evals = 10
+    max_evals = 1000
 
     try:
         trials = joblib.load(trials_file)
@@ -106,6 +110,8 @@ def load_data():
 
     class_counts = [Y[truth].shape[0] for truth in truth_classes]
     min_c = min(class_counts)
+
+    if optimize: min_c = int(min_c*0.25)
 
     #class_weights = [c/sum(class_counts) for c in class_counts]
     #for i,truth in enumerate(truth_classes):
@@ -212,6 +218,7 @@ def build_model(input_shapes, num_classes, hyperspace):
 
 
 def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hyperspace):
+    epochs = int(hyperspace.get('epochs',200))
 
     # save the trials before fit (to save the previous)
     joblib.dump(trials, trials_file, compress=('gzip', 3))
@@ -228,7 +235,7 @@ def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hypers
     ]
     history = model.fit(X_train, Y_train,
                         batch_size = 20000,
-                        epochs = 200,
+                        epochs = epochs,
                         verbose = 0,
                         validation_split = 0.1,
                         shuffle = True,
@@ -238,9 +245,30 @@ def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hypers
 
     score = model.evaluate(X_test,Y_test,verbose=0)
 
+    # penalize the score if not all epochs reduce loss
+    bi = 0
+    pbi = 0
+    best = 999999
+    prevbest = 999999
+    x = 0
+    n = len(history.history['val_loss'])
+    for i,loss in enumerate(history.history['val_loss']):
+        if loss<best:
+            prevbest = best
+            pbi = bi
+            best = loss
+            bi = i
+        else:
+            x += 1
+
+    di = max([abs(bi-pbi), abs(n-bi-1)])
+    dl = abs(best-prevbest)
+
+
     result = {
-        'loss': score[0],
-        'acc': score[1],
+        'loss' : score[0]*(1+(di/n)**2),
+        'test_loss': score[0],
+        'test_acc': score[1],
         'space': hyperspace,
         'history': history.history,
         'status': STATUS_OK,
@@ -301,6 +329,7 @@ hyperspace = {
     #'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
     'dropoutRate': hp.choice('dropoutRate',[0.2]),
     'lr': hp.loguniform('lr',-12,-5),
+    'epochs': hp.quniform('epochs',10,400,1),
 }
 
 if optimize:
