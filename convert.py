@@ -271,7 +271,7 @@ def normalize(df):
             df[key] = df.apply(lambda row: [x-row['muon_calEnergy_hcal_iphi'] for x in row[key]], axis=1)
         # normalize hcal digi energy to total hcal energy
         if key=='muon_calEnergy_crossedHadRecHits_energy':
-            df[key] = df.apply(lambda row: [x/x.sum() if x.sum() else 0 for x in row[key]], axis=1)
+            df[key] = df.apply(lambda row: [x/row[key].sum() if row[key].sum() else 0 for x in row[key]], axis=1)
         # prevent very different default values
         if key=='muon_calEnergy_crossedHadRecHits_time':
             df[key] = df[key].apply(lambda x: [-20 if ix<-20 else ix for ix in x])
