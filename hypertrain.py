@@ -50,7 +50,7 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.keras import backend as k
 
 from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
 import joblib
