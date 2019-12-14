@@ -8,6 +8,10 @@ from array import array
 import ROOT
 ROOT.gROOT.SetBatch()
 
+usePlaid = True
+if usePlaid:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
 import numpy as np
 from keras.models import load_model
 
@@ -20,10 +24,11 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-k.tensorflow_backend.set_session(tf.Session(config=config))
+if not usePlaid:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+    k.tensorflow_backend.set_session(tf.Session(config=config))
 
 parser = argparse.ArgumentParser(description='Evaluate')
 parser.add_argument('convertDir', type=str, 

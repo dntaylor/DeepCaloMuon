@@ -6,7 +6,6 @@ import random
 import itertools
 import threading
 import numpy as np
-import pandas as pd
 from multiprocessing import  Pool
 import json
 import awkward
@@ -42,8 +41,7 @@ args = parser.parse_args()
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 NTHREADS = 16
-parallel = True
-vectorInput = False
+parallel = True # TODO: reimplement
 doElectron = False
 
 inDir = args.rootDir
@@ -58,9 +56,9 @@ fnames = glob.glob('{}/*.root'.format(inDir))
 treename = 'muonTree/MuonTree'
 # must create these branches, they are what is output
 if doElectron:
-    out_truth = ['pion','muon','electron']
+    out_truth = [b'pion',b'muon',b'electron']
 else:
-    out_truth = ['pion','muon']
+    out_truth = [b'pion',b'muon']
 # weight bins
 weight_bins = [
     # muon_innerTrack_p
@@ -74,57 +72,58 @@ weight_bins = [
         dtype=float
     ),
 ]
-weight_bin_labels = ['muon_innerTrack_p','muon_innerTrack_abseta']
+weight_bin_labels = [b'muon_innerTrack_p',b'muon_innerTrack_abseta']
 weight_bin_axis_labels = [r'Track $p_{T}$', r'Track $|\eta|$']
-weight_branches = ['muon_innerTrack_p','muon_innerTrack_eta']
-reference = 'muon'
+weight_branches = [b'muon_innerTrack_p',b'muon_innerTrack_eta']
+reference = b'muon'
 # these are helper branches (perhaps truth info) that are not output
-#other_branches = ['muon_gen_matches_pion','muon_gen_matches_muon','muon_gen_deltaR']
-other_branches = ['muon_gen_sim_pdgId','muon_pt']
+#other_branches = [b'muon_gen_matches_pion',b'muon_gen_matches_muon',b'muon_gen_deltaR']
+other_branches = [b'muon_gen_sim_pdgId',b'muon_pt']
 # these are the branches that are output
 branches = [
-    #'muon_innerTrack_pt',
-    'muon_innerTrack_p',
-    'muon_innerTrack_eta',
-    'muon_innerTrack_phi',
-    'muon_innerTrack_qoverp',
-    'muon_innerTrack_qoverpError',
-    'muon_innerTrack_validFraction',
-    'muon_innerTrack_highPurity',
-    'muon_innerTrack_hitPattern_trackerLayersWithMeasurement',
-    'muon_innerTrack_hitPattern_pixelLayersWithMeasurement',
-    'muon_isolationR03_nTracks',
-    'muon_isolationR03_sumPt',
-    #'muon_caloCompatibility',
-    #'muon_calEnergy_ecal_time',
-    'muon_calEnergy_em',
-    'muon_calEnergy_emMax',
-    'muon_calEnergy_emS25',
-    'muon_calEnergy_emS9',
-    'muon_calEnergy_had',
-    'muon_calEnergy_hadMax',
-    'muon_calEnergy_hadS9',
-    #'muon_calEnergy_hcal_time',
-    'muon_calEnergy_ho',
-    'muon_calEnergy_hoS9',
-    #'muon_calEnergy_tower',
-    #'muon_calEnergy_towerS9',
-    'muon_calEnergy_hcal_ieta',
-    'muon_calEnergy_hcal_iphi',
-    'muon_calEnergy_crossedHadRecHits_ieta',
-    'muon_calEnergy_crossedHadRecHits_iphi',
-    'muon_calEnergy_crossedHadRecHits_depth',
-    'muon_calEnergy_crossedHadRecHits_energy',
-    'muon_calEnergy_crossedHadRecHits_time',
-    'muon_calEnergy_crossedHadRecHits_chi2',
+    #b'muon_innerTrack_pt',
+    b'muon_innerTrack_p',
+    b'muon_innerTrack_eta',
+    b'muon_innerTrack_phi',
+    b'muon_innerTrack_qoverp',
+    b'muon_innerTrack_qoverpError',
+    b'muon_innerTrack_validFraction',
+    b'muon_innerTrack_highPurity',
+    b'muon_innerTrack_hitPattern_trackerLayersWithMeasurement',
+    b'muon_innerTrack_hitPattern_pixelLayersWithMeasurement',
+    b'muon_isolationR03_nTracks',
+    b'muon_isolationR03_sumPt',
+    #b'muon_caloCompatibility',
+    #b'muon_calEnergy_ecal_time',
+    b'muon_calEnergy_em',
+    b'muon_calEnergy_emMax',
+    b'muon_calEnergy_emS25',
+    b'muon_calEnergy_emS9',
+    b'muon_calEnergy_had',
+    b'muon_calEnergy_hadMax',
+    b'muon_calEnergy_hadS9',
+    #b'muon_calEnergy_hcal_time',
+    b'muon_calEnergy_ho',
+    b'muon_calEnergy_hoS9',
+    #b'muon_calEnergy_tower',
+    #b'muon_calEnergy_towerS9',
+    b'muon_calEnergy_hcal_ieta',
+    b'muon_calEnergy_hcal_iphi',
+    b'muon_calEnergy_crossedHadRecHits_ieta',
+    b'muon_calEnergy_crossedHadRecHits_iphi',
+    b'muon_calEnergy_crossedHadRecHits_depth',
+    b'muon_calEnergy_crossedHadRecHits_energy',
+    b'muon_calEnergy_crossedHadRecHits_time',
+    b'muon_calEnergy_crossedHadRecHits_chi2',
 ]
 branch_groupings = [
-    [b for b in branches if 'muon_calEnergy_crossedHadRecHits' not in b],
-    [b for b in branches if 'muon_calEnergy_crossedHadRecHits' in b],
+    [b for b in branches if b'muon_calEnergy_crossedHadRecHits' not in b],
+    [b for b in branches if b'muon_calEnergy_crossedHadRecHits' in b],
 ]
-branch_lengths = {b: 15 for b in branches if 'muon_calEnergy_crossedHadRecHits' in b}
+branch_lengths = {b: 15 for b in branches if b'muon_calEnergy_crossedHadRecHits' in b}
 linear_branches = {
-    #'muon_innerTrack_p': [1.5,1000],
+    #b'muon_innerTrack_p': [1.5,1000],
+    #b'muon_innerTrack_eta': [-3.0,3.0],
 }
 
 # get weights
@@ -132,18 +131,23 @@ print('Calculating weights')
 distributions = {}
 for fname in fnames:
     print(fname)
-    for df in uproot.iterate(fname,treename,other_branches+weight_branches,entrysteps=1000000000,outputtype=pd.DataFrame):
-        if vectorInput: df = pd.DataFrame({k: list(itertools.chain.from_iterable(df[k])) for k in df.columns})
-        df['muon_innerTrack_abseta'] = df['muon_innerTrack_eta'].abs()
-        df = df[(df['muon_gen_sim_pdgId'].abs()==13) | (df['muon_gen_sim_pdgId'].abs()==211)].copy()
-        df['muon'] = df['muon_gen_sim_pdgId'].abs()==13
-        df['pion'] = df['muon_gen_sim_pdgId'].abs()==211
-        df['electron'] = df['muon_gen_sim_pdgId'].abs()==11
+    for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,entrysteps=1000000000):
+        arrays[b'muon_innerTrack_abseta'] = abs(arrays[b'muon_innerTrack_eta'])
+        if doElectron:
+            keep =  ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
+                | (abs(arrays[b'muon_gen_sim_pdgId'])==11)
+                | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+        else:
+            keep =  ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
+                | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+        arrays[b'muon'] = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
+        arrays[b'pion'] = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
+        arrays[b'electron'] = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
 
         for truth in out_truth:
             hist, xedges, yedges = np.histogram2d(
-                df[df[truth]==1][weight_bin_labels[0]],
-                df[df[truth]==1][weight_bin_labels[1]],
+                arrays[weight_bin_labels[0]][arrays[truth]],
+                arrays[weight_bin_labels[1]][arrays[truth]],
                 weight_bins
             )
             if truth in distributions:
@@ -192,17 +196,17 @@ for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entryste
         # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
         if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
     for key in arrays:
-        if key.decode('utf-8') not in branches: continue
+        if key not in branches: continue
         # normalize sumpt
-        if key.decode('utf-8')=='muon_isolationR03_sumPt':
+        if key==b'muon_isolationR03_sumPt':
             arrays[key] = arrays[key]/arrays[b'muon_pt']
         # shift ieta, iphi to be centered at 0
-        if key.decode('utf-8')=='muon_calEnergy_crossedHadRecHits_ieta':
+        if key==b'muon_calEnergy_crossedHadRecHits_ieta':
             arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_ieta']
-        if key.decode('utf-8')=='muon_calEnergy_crossedHadRecHits_iphi':
+        if key==b'muon_calEnergy_crossedHadRecHits_iphi':
             arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_iphi']
         # normalize hcal digi energy to total hcal energy
-        if key.decode('utf-8')=='muon_calEnergy_crossedHadRecHits_energy':
+        if key==b'muon_calEnergy_crossedHadRecHits_energy':
             arrays[key] = arrays[key]/arrays[key].sum()
         # broken for some reason
         #means[key] = arrays[key][~np.isnan(arrays[key])].flatten().mean()
@@ -210,14 +214,14 @@ for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entryste
         a = arrays[key]
         while isinstance(a,awkward.JaggedArray): a = a.flatten()
         # change default no time/chi2 value to closer to real values
-        if key.decode('utf-8')=='muon_calEnergy_crossedHadRecHits_time':
+        if key==b'muon_calEnergy_crossedHadRecHits_time':
             a[a<-20] = -20
-        if key.decode('utf-8')=='muon_calEnergy_crossedHadRecHits_chi2':
+        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
             a[a<-5] = -5
         means[key] = a[~np.isnan(a)].mean()
         varis[key] = a[~np.isnan(a)].var()
-        means_sum[key.decode('utf-8')] += [means[key]]
-        varis_sum[key.decode('utf-8')] += [varis[key]]
+        means_sum[key] += [means[key]]
+        varis_sum[key] += [varis[key]]
 means = {key: np.array(means_sum[key]).mean() for key in branches}
 varis = {key: np.array(varis_sum[key]).mean() for key in branches}
 stds  = {key: np.sqrt(np.array(varis_sum[key]).mean()) for key in branches}
@@ -226,136 +230,112 @@ for key in sorted(means):
     print(key,means[key],stds[key])
 
 result = {
-    'means':{key:float(item) for key,item in means.items()},
-    'stds':{key:float(item) for key,item in stds.items()},
-    'linear': linear_branches,
+    'means':{key.decode('utf-8'):float(item) for key,item in means.items()},
+    'stds':{key.decode('utf-8'):float(item) for key,item in stds.items()},
+    'linear': {key.decode('utf-8'):item for key,item in linear_branches.items()},
 }
 with open('{}/means.json'.format(outDir),'w') as f:
     json.dump(result,f)
 
 
-def parallel_apply(df,func,n=NTHREADS):
-    df_split = np.array_split(df, n)
-    pool = Pool(n)
-    df = pd.concat(pool.map(func, df_split))
-    pool.close()
-    pool.join()
-    return df
-
-def get_bin(value,bins):
-    for i,b in enumerate(bins):
-        if value<b: return i-1
-    return bins.size-2
-def get_weight(row):
-    bX = get_bin(row[weight_bin_labels[0]],xedges)
-    bY = get_bin(row[weight_bin_labels[1]],yedges)
-    for truth in out_truth:
-        if row[truth]: 
-            return weight_distributions[truth][bX][bY]
-    return 1
-def weighting(df):
+def weighting(arrays):
     # create abseta
-    df['muon_innerTrack_abseta'] = df['muon_innerTrack_eta'].abs()
-    df['weight'] = df.apply(lambda row: get_weight(row), axis=1)
-    return df
+    arrays[b'muon_innerTrack_abseta'] = abs(arrays[b'muon_innerTrack_eta'])
+    arrays[b'weight'] = np.zeros(arrays[b'muon_innerTrack_abseta'].shape)
+    for truth in out_truth:
+        for xi in range(len(xedges)-1):
+            for yi in range(len(yedges)-1):
+                mask = ((arrays[truth]) 
+                    & (arrays[weight_bin_labels[0]]>xedges[xi]) 
+                    & (arrays[weight_bin_labels[0]]<xedges[xi+1])
+                    & (arrays[weight_bin_labels[1]]>yedges[yi]) 
+                    & (arrays[weight_bin_labels[1]]<yedges[yi+1]))
+                arrays[b'weight'][mask] = weight_distributions[truth][xi][yi]
+    return arrays
 
-def normalize(df):
+def normalize(arrays):
     for key in branches:
         # normalize sumpt
-        if key=='muon_isolationR03_sumPt':
-            df[key] = df[key]/df['muon_pt']
+        if key==b'muon_isolationR03_sumPt':
+            arrays[key] = arrays[key]/arrays[b'muon_pt']
         # shift ieta, iphi to be centered at 0
-        if key=='muon_calEnergy_crossedHadRecHits_ieta':
-            df[key] = df.apply(lambda row: [x-row['muon_calEnergy_hcal_ieta'] for x in row[key]], axis=1)
-        if key=='muon_calEnergy_crossedHadRecHits_iphi':
-            df[key] = df.apply(lambda row: [x-row['muon_calEnergy_hcal_iphi'] for x in row[key]], axis=1)
+        if key==b'muon_calEnergy_crossedHadRecHits_ieta':
+            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_ieta']
+        if key==b'muon_calEnergy_crossedHadRecHits_iphi':
+            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_iphi']
         # normalize hcal digi energy to total hcal energy
-        if key=='muon_calEnergy_crossedHadRecHits_energy':
-            df[key] = df.apply(lambda row: [x/row[key].sum() if row[key].sum() else 0 for x in row[key]], axis=1)
+        if key==b'muon_calEnergy_crossedHadRecHits_energy':
+            arrays[key] = arrays[key]/arrays[key].sum()
         # prevent very different default values
-        if key=='muon_calEnergy_crossedHadRecHits_time':
-            df[key] = df[key].apply(lambda x: [-20 if ix<-20 else ix for ix in x])
-        if key=='muon_calEnergy_crossedHadRecHits_chi2':
-            df[key] = df[key].apply(lambda x: [-5 if ix<-5 else ix for ix in x])
+        if key==b'muon_calEnergy_crossedHadRecHits_time':
+            arrays[key][(arrays[key]<-20)] = -20
+        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
+            arrays[key][(arrays[key]<-5)] = -5
 
     for key in branches:
-        if df[key].dtype==object: # needed in pandas 0.25.3
-            df[key] = df[key].apply(lambda row: np.array(row))
         if key in linear_branches:
-            df[key] = (df[key].clip(*linear_branches[key])-linear_branches[key][0])/(linear_branches[key][1]-linear_branches[key][0])
+            arrays[key] = (arrays[key].clip(*linear_branches[key])-linear_branches[key][0])/(linear_branches[key][1]-linear_branches[key][0])
         else:
-            df[key] = df[key]-means[key]
-            df[key] = df[key]/stds[key]
-    return df
+            arrays[key] = arrays[key]-means[key]
+            arrays[key] = arrays[key]/stds[key]
+    return arrays
 
-def padtruncate(df):
+def padtruncate(arrays):
     for b,l in branch_lengths.items():
-        if b not in df.columns: continue
-        df[b] = df[b].apply(lambda x: np.pad(np.array(x), (0,l), 'constant')[:l])
-    return df
+        if b not in arrays: continue
+        arrays[b] = arrays[b].pad(l,clip=True).fillna(0).regular()
+    return arrays
 
 def convert_fname(fname,i):
     print('Processing',fname)
-    for df in uproot.iterate(fname,treename,other_branches+branches,entrysteps=100000000,outputtype=pd.DataFrame):
+    for arrays in uproot.iterate(fname,treename,other_branches+branches,entrysteps=100000000):
         isval = i%10==1
         # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
         print('Converting',i)
         for key in other_branches+branches:
-            if isinstance(df[key],awkward.ObjectArray): df[key] = awkward.fromiter(df[key])
-
-        # flatten the dataframe
-        print('Flattening',i)
-        if vectorInput: df = pd.DataFrame({k: list(itertools.chain.from_iterable(df[k])) for k in df.columns})
+            if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
 
         # selections
         print('Reducing',i)
-        #if not isval: df = df[df['muon_gen_deltaR']<0.1]
-        #df['muon'] = df['muon_gen_matches_muon']
-        #df['pion'] = df['muon_gen_matches_pion']
-        if not isval: df = df[(df['muon_gen_sim_pdgId'].abs()==13) | (df['muon_gen_sim_pdgId'].abs()==211)].copy()
-        df['muon'] = df['muon_gen_sim_pdgId'].abs()==13
-        df['pion'] = df['muon_gen_sim_pdgId'].abs()==211
-        df['electron'] = df['muon_gen_sim_pdgId'].abs()==11
+        if not isval: 
+            if doElectron:
+                keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays[b'muon_gen_sim_pdgId'])==11)
+                    | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+            else:
+                keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+        else:
+            keep = (np.zeros(arrays[b'muon_gen_sim_pdgId'].shape)==0)
+        for key in arrays:
+            arrays[key] = arrays[key][keep]
+        arrays[b'muon'] = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
+        arrays[b'pion'] = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
+        arrays[b'electron'] = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
         for t in out_truth:
-            print(t,df[t].sum())
+            print(t,arrays[t].sum())
 
-        # throw out 80% pions
-        if not isval: df = df.drop(df[df['pion']==1].sample(frac=0.8).index)
-
-        # throw out barrel
-        # test
-        #if not isval: df = df[df['muon_innerTrack_eta'].abs()>1.566] # HE start full depth
-    
         # calculate weight
         print('Weighting',i)
-        if parallel:
-            df = parallel_apply(df,weighting)
-        else:
-            df = weighting(df)
+        arrays = weighting(arrays)
 
 
         # normalize
         print('Normalizing',i)
-        if parallel:
-            df = parallel_apply(df,normalize)
-        else:
-            df = normalize(df)
+        arrays = normalize(arrays)
 
         # zero pad and truncate
         print('Padding and truncating',i)
-        if parallel:
-            df = parallel_apply(df,padtruncate)
-        else:
-            df = padtruncate(df)
+        arrays = padtruncate(arrays)
     
     
         # convert to numpy
         if isval:
             print('Preparing',i)
-            W = df['weight']
+            W = arrays[b'weight']
             # note: this stacks the list of arrays that happens if a branch is an array
-            X = [np.stack([np.stack(a) for a in df[groupb].to_numpy()]) for groupb in branch_groupings]
-            Y = df[out_truth]
+            X = [np.swapaxes(np.stack([arrays[ab] for ab in groupb]),0,1) for groupb in branch_groupings]
+            Y = np.swapaxes(np.stack([arrays[ot] for ot in out_truth]),0,1)
     
             print('Saving',i)
             name = 'output_validation'
@@ -367,18 +347,17 @@ def convert_fname(fname,i):
                 f.write(fname)
         else:
             print('Preparing',i)
-            W = {truth: df[df[truth]==1]['weight'] for truth in out_truth}
-            # note: this stacks the list of arrays that happens if a branch is an array
-            X = {truth: [np.stack([np.stack(a) for a in df[df[truth]==1][groupb].to_numpy()]) for groupb in branch_groupings] for truth in out_truth}
-            Y = {truth: df[df[truth]==1][out_truth] for truth in out_truth}
-    
+            W = {truth: arrays[b'weight'][arrays[truth]] for truth in out_truth}
+            X = {truth: [np.swapaxes(np.stack([arrays[ab][arrays[truth]] for ab in groupb]),0,1) for groupb in branch_groupings] for truth in out_truth}
+            Y = {truth: np.swapaxes(np.stack([arrays[ot][arrays[truth]] for ot in out_truth]),0,1) for truth in out_truth}
+
             print('Saving',i)
             name = 'output'
             for truth in out_truth:
-                np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth,i),W[truth])
+                np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth.decode('utf-8'),i),W[truth])
                 for j,x in enumerate(X[truth]):
-                    np.save('{}/{}_{}_{}.x{}.npy'.format(outDir,name,truth,i,j),x)
-                np.save('{}/{}_{}_{}.y.npy'.format(outDir,name,truth,i),Y[truth])
+                    np.save('{}/{}_{}_{}.x{}.npy'.format(outDir,name,truth.decode('utf-8'),i,j),x)
+                np.save('{}/{}_{}_{}.y.npy'.format(outDir,name,truth.decode('utf-8'),i),Y[truth])
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
 

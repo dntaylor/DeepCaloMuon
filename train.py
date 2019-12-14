@@ -27,6 +27,10 @@ if os.path.exists(outDir):
 
 doElectron = False
 
+usePlaid = True
+if usePlaid:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
 
 import numpy as np
 from keras.models import Model
@@ -53,10 +57,11 @@ if doElectron:
 else:
     truth_classes = ['pion','muon']
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-k.tensorflow_backend.set_session(tf.Session(config=config))
+if not usePlaid:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+    k.tensorflow_backend.set_session(tf.Session(config=config))
 
 # load all at once
 
