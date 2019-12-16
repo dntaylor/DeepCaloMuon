@@ -11,20 +11,13 @@ import json
 import awkward
 import uproot
 import concurrent.futures
-import ROOT
 import glob
 import h5py
 import random
 import errno
-import pickle
 import logging
-#import dask.dataframe as dd
-#import dask
-#from multiprocessing.pool import ThreadPool
 
 from utilities import python_mkdir
-
-ROOT.gROOT.SetBatch()
 
 import matplotlib as mpl
 mpl.use('Agg')
@@ -183,7 +176,7 @@ def plot_hist(hist,outname):
     fig.savefig(outname)
     plt.close()
 for truth in out_truth:
-    plot_hist(weight_distributions[truth],'{}/weight_{}.png'.format(outDir,truth))
+    plot_hist(weight_distributions[truth],'{}/weight_{}.png'.format(outDir,truth.decode('utf-8')))
 
 # get means
 print('Calculating means')
