@@ -56,7 +56,7 @@ else:
 weight_bins = [
     # muon_innerTrack_p
     np.array(
-        [1.5,2,2.5,3,3.5,4,4.5,5,6,7,8,9,10,15,20,30,40,50,100,1000],
+        [1.5,2,2.5,3,3.5,4,4.5,5,6,7,8,9,10,15,20,30,40,50,100,1000,7000],
         dtype=float
     ),
     # muon_innerTrack_abseta (need to create)
@@ -70,8 +70,12 @@ weight_bin_axis_labels = [r'Track $p_{T}$', r'Track $|\eta|$']
 weight_branches = [b'muon_innerTrack_p',b'muon_innerTrack_eta']
 reference = b'muon'
 # these are helper branches (perhaps truth info) that are not output
-#other_branches = [b'muon_gen_matches_pion',b'muon_gen_matches_muon',b'muon_gen_deltaR']
-other_branches = [b'muon_gen_sim_pdgId',b'muon_pt']
+other_branches = [
+    b'muon_gen_sim_pdgId',
+    b'muon_gen_sim_tpAssoQuality',
+    b'muon_pt',
+    b'muon_energy',
+]
 # these are the branches that are output
 branches = [
     #b'muon_innerTrack_pt',
@@ -109,14 +113,42 @@ branches = [
     b'muon_calEnergy_crossedHadRecHits_time',
     b'muon_calEnergy_crossedHadRecHits_chi2',
 ]
+with open('{}/branches.txt'.format(outDir),'w') as f:
+    for b in branches:
+        f.write(b.decode('utf-8')+'\n')
+# energy branches to normalize against muon energy
+energy_branches = [
+    b'muon_calEnergy_em',
+    b'muon_calEnergy_emMax',
+    b'muon_calEnergy_emS25',
+    b'muon_calEnergy_emS9',
+    b'muon_calEnergy_had',
+    b'muon_calEnergy_hadMax',
+    b'muon_calEnergy_hadS9',
+    b'muon_calEnergy_ho',
+    b'muon_calEnergy_hoS9',
+    b'muon_calEnergy_tower',
+    b'muon_calEnergy_towerS9',
+]
+
 branch_groupings = [
     [b for b in branches if b'muon_calEnergy_crossedHadRecHits' not in b],
     [b for b in branches if b'muon_calEnergy_crossedHadRecHits' in b],
 ]
 branch_lengths = {b: 15 for b in branches if b'muon_calEnergy_crossedHadRecHits' in b}
 linear_branches = {
-    #b'muon_innerTrack_p': [1.5,1000],
-    #b'muon_innerTrack_eta': [-3.0,3.0],
+    #b'muon_innerTrack_p': [1.5,7000.],
+    b'muon_innerTrack_eta': [-3.0,3.0],
+    b'muon_innerTrack_phi': [-np.pi,np.pi],
+    b'muon_innerTrack_hitPattern_trackerLayersWithMeasurement': [0.,20.],
+    b'muon_innerTrack_hitPattern_pixelLayersWithMeasurement':[0.,5.],
+    b'muon_isolationR03_nTracks':[0.,15.],
+    b'muon_calEnergy_hcal_ieta':[-30.,30.],
+    b'muon_calEnergy_hcal_iphi':[0.,72.],
+    #b'muon_calEnergy_crossedHadRecHits_depth':[0,8],
+}
+loglinear_branches = {
+    b'muon_innerTrack_p': [1.5,7000.],
 }
 
 # get weights
@@ -178,18 +210,9 @@ def plot_hist(hist,outname):
 for truth in out_truth:
     plot_hist(weight_distributions[truth],'{}/weight_{}.png'.format(outDir,truth.decode('utf-8')))
 
-# get means
-print('Calculating means')
-means_sum = {key:[] for key in branches}
-varis_sum = {key:[] for key in branches}
-for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entrysteps=100000000):
-    means = {}
-    varis = {}
-    for key in arrays:
-        # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
-        if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
-    for key in arrays:
-        if key not in branches: continue
+def transform(arrays):
+    for key in branches:
+        if key not in arrays: continue
         # normalize sumpt
         if key==b'muon_isolationR03_sumPt':
             arrays[key] = arrays[key]/arrays[b'muon_pt']
@@ -201,16 +224,31 @@ for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entryste
         # normalize hcal digi energy to total hcal energy
         if key==b'muon_calEnergy_crossedHadRecHits_energy':
             arrays[key] = arrays[key]/arrays[key].sum()
-        # broken for some reason
-        #means[key] = arrays[key][~np.isnan(arrays[key])].flatten().mean()
-        #varis[key] = arrays[key][~np.isnan(arrays[key])].flatten().var()
+        # normalize energies relative to the muon energy
+        if key in energy_branches:
+            arrays[key] = arrays[key]/arrays[b'muon_energy']
+        # prevent very different default values
+        if key==b'muon_calEnergy_crossedHadRecHits_time':
+            arrays[key][(arrays[key]<-20)] = -20
+        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
+            arrays[key][(arrays[key]<-5)] = -5
+    return arrays
+
+# get means
+print('Calculating means')
+means_sum = {key:[] for key in branches}
+varis_sum = {key:[] for key in branches}
+for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entrysteps=100000000):
+    means = {}
+    varis = {}
+    for key in arrays:
+        # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
+        if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
+    arrays = transform(arrays)
+    for key in arrays:
+        if key not in branches: continue
         a = arrays[key]
         while isinstance(a,awkward.JaggedArray): a = a.flatten()
-        # change default no time/chi2 value to closer to real values
-        if key==b'muon_calEnergy_crossedHadRecHits_time':
-            a[a<-20] = -20
-        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
-            a[a<-5] = -5
         means[key] = a[~np.isnan(a)].mean()
         varis[key] = a[~np.isnan(a)].var()
         means_sum[key] += [means[key]]
@@ -226,6 +264,7 @@ result = {
     'means':{key.decode('utf-8'):float(item) for key,item in means.items()},
     'stds':{key.decode('utf-8'):float(item) for key,item in stds.items()},
     'linear': {key.decode('utf-8'):item for key,item in linear_branches.items()},
+    'loglinear': {key.decode('utf-8'):item for key,item in loglinear_branches.items()},
 }
 with open('{}/means.json'.format(outDir),'w') as f:
     json.dump(result,f)
@@ -248,26 +287,10 @@ def weighting(arrays):
 
 def normalize(arrays):
     for key in branches:
-        # normalize sumpt
-        if key==b'muon_isolationR03_sumPt':
-            arrays[key] = arrays[key]/arrays[b'muon_pt']
-        # shift ieta, iphi to be centered at 0
-        if key==b'muon_calEnergy_crossedHadRecHits_ieta':
-            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_ieta']
-        if key==b'muon_calEnergy_crossedHadRecHits_iphi':
-            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_iphi']
-        # normalize hcal digi energy to total hcal energy
-        if key==b'muon_calEnergy_crossedHadRecHits_energy':
-            arrays[key] = arrays[key]/arrays[key].sum()
-        # prevent very different default values
-        if key==b'muon_calEnergy_crossedHadRecHits_time':
-            arrays[key][(arrays[key]<-20)] = -20
-        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
-            arrays[key][(arrays[key]<-5)] = -5
-
-    for key in branches:
         if key in linear_branches:
             arrays[key] = (arrays[key].clip(*linear_branches[key])-linear_branches[key][0])/(linear_branches[key][1]-linear_branches[key][0])
+        elif key in loglinear_branches:
+            arrays[key] = (np.log(arrays[key].clip(*loglinear_branches[key]))-np.log(loglinear_branches[key][0]))/(np.log(loglinear_branches[key][1])-np.log(loglinear_branches[key][0]))
         else:
             arrays[key] = arrays[key]-means[key]
             arrays[key] = arrays[key]/stds[key]
@@ -298,6 +321,7 @@ def convert_fname(fname,i):
             else:
                 keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
                     | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+            keep = (keep & (arrays[b'muon_gen_sim_tpAssoQuality']>0.5)) # try only keeping high quality matches
         else:
             keep = (np.zeros(arrays[b'muon_gen_sim_pdgId'].shape)==0)
         for key in arrays:
@@ -312,15 +336,18 @@ def convert_fname(fname,i):
         print('Weighting',i)
         arrays = weighting(arrays)
 
-
-        # normalize
-        print('Normalizing',i)
-        arrays = normalize(arrays)
+        # transform
+        print('Transforming',i)
+        arrays = transform(arrays)
 
         # zero pad and truncate
         print('Padding and truncating',i)
         arrays = padtruncate(arrays)
     
+        # normalize
+        print('Normalizing',i)
+        arrays = normalize(arrays)
+
     
         # convert to numpy
         if isval:

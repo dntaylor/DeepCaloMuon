@@ -196,7 +196,7 @@ def build_model(input_shapes, num_classes,
 
 callbacks = [
     ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False),
-    EarlyStopping(monitor='val_loss', patience=200, verbose=1, mode='min'),
+    EarlyStopping(monitor='val_loss', patience=40, verbose=1, mode='min'),
     CSVLogger('{}/training.csv'.format(outDir)),
 ]
 
@@ -207,7 +207,7 @@ modelArgs = {
     'batchnorm': True,
     'momentum': 0.6, # 0.6-0.85 for large batches (5k+), larger (0.9-0.99) for smaller batches
     'dropoutRate': 0.2,
-    'lr': 1e-4,
+    'lr': 1e-3,
 }
 
 X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()
