@@ -16,6 +16,7 @@ import h5py
 import random
 import errno
 import logging
+from tqdm.auto import tqdm
 
 from utilities import python_mkdir
 
@@ -155,7 +156,7 @@ loglinear_branches = {
 print('Calculating weights')
 distributions = {}
 for fname in fnames:
-    print(fname)
+    #print(fname)
     for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,entrysteps=1000000000):
         arrays[b'muon_innerTrack_abseta'] = abs(arrays[b'muon_innerTrack_eta'])
         if doElectron:
@@ -303,16 +304,16 @@ def padtruncate(arrays):
     return arrays
 
 def convert_fname(fname,i):
-    print('Processing',fname)
+    #print('Processing',fname)
     for arrays in uproot.iterate(fname,treename,other_branches+branches,entrysteps=100000000):
         isval = i%10==1
         # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
-        print('Converting',i)
+        #print('Converting',i)
         for key in other_branches+branches:
             if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
 
         # selections
-        print('Reducing',i)
+        #print('Reducing',i)
         if not isval: 
             if doElectron:
                 keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
@@ -329,35 +330,34 @@ def convert_fname(fname,i):
         arrays[b'muon'] = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
         arrays[b'pion'] = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
         arrays[b'electron'] = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
-        for t in out_truth:
-            print(t,arrays[t].sum())
+        #for t in out_truth: print(t,arrays[t].sum())
 
         # calculate weight
-        print('Weighting',i)
+        #print('Weighting',i)
         arrays = weighting(arrays)
 
         # transform
-        print('Transforming',i)
+        #print('Transforming',i)
         arrays = transform(arrays)
 
         # zero pad and truncate
-        print('Padding and truncating',i)
+        #print('Padding and truncating',i)
         arrays = padtruncate(arrays)
     
         # normalize
-        print('Normalizing',i)
+        #print('Normalizing',i)
         arrays = normalize(arrays)
 
     
         # convert to numpy
         if isval:
-            print('Preparing',i)
+            #print('Preparing',i)
             W = arrays[b'weight']
             # note: this stacks the list of arrays that happens if a branch is an array
             X = [np.swapaxes(np.stack([arrays[ab] for ab in groupb]),0,1) for groupb in branch_groupings]
             Y = np.swapaxes(np.stack([arrays[ot] for ot in out_truth]),0,1)
     
-            print('Saving',i)
+            #print('Saving',i)
             name = 'output_validation'
             np.save('{}/{}_{}.w.npy'.format(outDir,name,i),W)
             for j,x in enumerate(X):
@@ -366,12 +366,12 @@ def convert_fname(fname,i):
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
         else:
-            print('Preparing',i)
+            #print('Preparing',i)
             W = {truth: arrays[b'weight'][arrays[truth]] for truth in out_truth}
             X = {truth: [np.swapaxes(np.stack([arrays[ab][arrays[truth]] for ab in groupb]),0,1) for groupb in branch_groupings] for truth in out_truth}
             Y = {truth: np.swapaxes(np.stack([arrays[ot][arrays[truth]] for ot in out_truth]),0,1) for truth in out_truth}
 
-            print('Saving',i)
+            #print('Saving',i)
             name = 'output'
             for truth in out_truth:
                 np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth.decode('utf-8'),i),W[truth])
@@ -381,11 +381,38 @@ def convert_fname(fname,i):
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
 
-for i,fname in enumerate(fnames):
-    convert_fname(fname,i)
-#with concurrent.futures.ThreadPoolExecutor(NTHREADS) as executor:
-#    inds = range(len(fnames))
-#    results = executor.map(convert_fname,fnames,inds)
-#    for r in results: # just so it throws an error
-#        if r: print(r)
-#    executor.shutdown()
+def _futures_handler(futures_set, status=True, unit='items', desc='Processing'):
+    try:
+        with tqdm(disable=not status, unit=unit, total=len(futures_set), desc=desc) as pbar:
+            while len(futures_set) > 0:
+                finished = set(job for job in futures_set if job.done())
+                futures_set.difference_update(finished)
+                while finished:
+                    res = finished.pop().result()
+                    pbar.update(1)
+                time.sleep(0.5)
+    except KeyboardInterrupt:
+        for job in futures_set:
+            job.cancel()
+        if status:
+            print("Received SIGINT, killed pending jobs.  Running jobs will continue to completion.", file=sys.stderr)
+            print("Running jobs:", sum(1 for j in futures_set if j.running()), file=sys.stderr)
+    except Exception:
+        for job in futures_set:
+            job.cancel()
+        raise
+
+#for i,fname in enumerate(fnames):
+#    convert_fname(fname,i)
+
+# TODO: probably not optimal
+# currently break apart by file
+# would like to break apart by chunks
+with concurrent.futures.ThreadPoolExecutor(NTHREADS) as executor:
+    #inds = range(len(fnames))
+    #results = executor.map(convert_fname,fnames,inds)
+    #for r in results: # just so it throws an error
+    #    if r: print(r)
+    #executor.shutdown()
+    futures = set(executor.submit(convert_fname, fname, i) for i, fname in enumerate(fnames))
+    _futures_handler(futures, status=True, unit='items', desc='Processing')
