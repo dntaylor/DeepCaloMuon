@@ -33,6 +33,10 @@ if os.path.exists(outDir):
         print('exiting')
         sys.exit(0)
 
+usePlaid = True
+if usePlaid:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
 
 # now import heavier stuff
 import numpy as np
@@ -46,7 +50,7 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.keras import backend as k
 
 from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
 import joblib
@@ -63,10 +67,11 @@ if doElectron:
 else:
     truth_classes = ['pion','muon']
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-k.tensorflow_backend.set_session(tf.Session(config=config))
+if not usePlaid:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+    k.tensorflow_backend.set_session(tf.Session(config=config))
 
 if optimize:
     max_evals = 1000

@@ -8,11 +8,15 @@ from array import array
 import ROOT
 ROOT.gROOT.SetBatch()
 
+usePlaid = True
+if usePlaid:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
 import numpy as np
 from keras.models import load_model
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.keras import backend as k
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.utils.multiclass import unique_labels
 
@@ -20,10 +24,11 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-k.tensorflow_backend.set_session(tf.Session(config=config))
+if not usePlaid:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+    k.tensorflow_backend.set_session(tf.Session(config=config))
 
 parser = argparse.ArgumentParser(description='Evaluate')
 parser.add_argument('convertDir', type=str, 
@@ -215,11 +220,14 @@ with open('{}/means.json'.format(inDir)) as f:
 means = result['means']
 stds = result['stds']
 linears = result['linear']
+loglinears = result['loglinear']
 X0 = X[0]
 pvals = X[0][:,pcol]
 etavals = X[0][:,etacol]
 if pvar in linears:
     pvals = pvals*(linears[pvar][1]-linears[pvar][0])+linears[pvar][0]
+elif pvar in loglinears:
+    pvals = np.exp(pvals*(np.log(loglinears[pvar][1])-np.log(loglinears[pvar][0]))+np.log(loglinears[pvar][0]))
 else:
     pvals = pvals*stds[pvar] + means[pvar]
 if etavar in linears:
@@ -307,32 +315,33 @@ with open('{}/roc_muon.json'.format(outDir),'w') as f:
 #    outfile.Write()
 #print(istart,'muons')
 
+# TODO: use uproot for speed skip for now
 # for flat
-istart = 0
-for f,fname in enumerate(rootnames):
-    tfile = ROOT.TFile.Open(fname)
-    tree = tfile.Get('muonTree/MuonTree')
-    outfile = ROOT.TFile.Open(friendnames[f],'RECREATE')
-    outtree = ROOT.TTree('ScoreTree','ScoreTree')
-    branches = {'muon_score_muon': array('f',[0]), 'muon_score_pion': array('f',[0]), 
-                'muon_truth_muon': array('f',[0]), 'muon_truth_pion': array('f',[0]), }
-    if doElectron:
-        branches['muon_score_electron'] = array('f',[0])
-        branches['muon_truth_electron'] = array('f',[0])
-    for label in branches:
-        outtree.Branch(label, branches[label], '{}/F'.format(label))
-
-    for i,row in enumerate(tree):
-        branches['muon_score_pion'][0] = prediction[istart+i][0]
-        branches['muon_score_muon'][0] = prediction[istart+i][1]
-        branches['muon_truth_pion'][0] = Y[istart+i][0]
-        branches['muon_truth_muon'][0] = Y[istart+i][1]
-        if doElectron:
-            branches['muon_score_electron'][0] = prediction[istart+i][2]
-            branches['muon_truth_electron'][0] = Y[istart+i][2]
-        outtree.Fill()
-    istart += tree.GetEntries()
-    outfile.Write()
-
-print(prediction.shape)
-print(Y.shape)
+#istart = 0
+#for f,fname in enumerate(rootnames):
+#    tfile = ROOT.TFile.Open(fname)
+#    tree = tfile.Get('muonTree/MuonTree')
+#    outfile = ROOT.TFile.Open(friendnames[f],'RECREATE')
+#    outtree = ROOT.TTree('ScoreTree','ScoreTree')
+#    branches = {'muon_score_muon': array('f',[0]), 'muon_score_pion': array('f',[0]), 
+#                'muon_truth_muon': array('f',[0]), 'muon_truth_pion': array('f',[0]), }
+#    if doElectron:
+#        branches['muon_score_electron'] = array('f',[0])
+#        branches['muon_truth_electron'] = array('f',[0])
+#    for label in branches:
+#        outtree.Branch(label, branches[label], '{}/F'.format(label))
+#
+#    for i,row in enumerate(tree):
+#        branches['muon_score_pion'][0] = prediction[istart+i][0]
+#        branches['muon_score_muon'][0] = prediction[istart+i][1]
+#        branches['muon_truth_pion'][0] = Y[istart+i][0]
+#        branches['muon_truth_muon'][0] = Y[istart+i][1]
+#        if doElectron:
+#            branches['muon_score_electron'][0] = prediction[istart+i][2]
+#            branches['muon_truth_electron'][0] = Y[istart+i][2]
+#        outtree.Fill()
+#    istart += tree.GetEntries()
+#    outfile.Write()
+#
+#print(prediction.shape)
+#print(Y.shape)

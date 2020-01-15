@@ -24,19 +24,6 @@ jsonLabels = args.labels
 print(jsonFiles)
 print(jsonLabels)
 
-#jsonFiles = [
-#    'roc_caloCompatibility.json',
-#    #'/storage/local/data1/gpuscratch/dntaylor/caloMuons_hcalDigis_trackerQuality_simHit/train_noHcalDigis_v1/roc_muon.json',
-#    '/storage/local/data1/gpuscratch/dntaylor/caloMuons_hcalDigis_trackerQuality_simHit_v2/train_v5/roc_muon.json',
-#]
-#
-#jsonLabels = [
-#    'caloCompatibility',
-#    #'ML + Track',
-#    'ML + HCAL Digis + Track',
-#]
-
-
 colors = [ROOT.kBlack, ROOT.kBlue, ROOT.kGreen+2, ROOT.kRed, ROOT.kMagenta, ROOT.kCyan]
 styles = [1,4,2,6,10]
 widths = [3,1,7,1,9]
@@ -93,6 +80,7 @@ def plot_hist(savename,allxvals,allyvals,labels=[],additional='',working=[]):
             if j==0: legend1.AddEntry(graphs[(k,j,)],jsonLabels[k],'l')
             if labels and k==0: legend2.AddEntry(graphs[(k,j,)],labels[j],'l')
             if k==0:
+                if not working: continue
                 for i, idname in enumerate(idnames):
                     wps['{}{}'.format(idname,j)] = ROOT.TGraph(1,array('d',[working[j][i][0]]),array('d',[working[j][i][1]]))
                     wps['{}{}'.format(idname,j)].SetMarkerColor(colors[j])
@@ -115,14 +103,15 @@ def plot_hist(savename,allxvals,allyvals,labels=[],additional='',working=[]):
         text.SetBorderSize(0)
         text.SetFillColor(0)
         text.SetTextAlign(11)
-        text.SetTextSize(0.05)
+        text.SetTextSize(0.03)
         text.AddText(additional)
         text.Draw()
     canvas.Print('{}.png'.format(savename))
 
+result = None
 for pb in range(npb):
-    with open('roc_caloCompatibility_pBin{}.json'.format(pb)) as f:
-        result = json.load(f)
+    #with open('roc_caloCompatibility_pBin{}.json'.format(pb)) as f:
+    #    result = json.load(f)
     plot_hist('roc_{}_pBin{}'.format(tag,pb),
         [results[jsonFile]['tpr']['pbin{}'.format(pb)] for jsonFile in jsonFiles],
         [results[jsonFile]['fpr']['pbin{}'.format(pb)] for jsonFile in jsonFiles],
@@ -131,8 +120,8 @@ for pb in range(npb):
         working=result)
 
 for eb in range(neb):
-    with open('roc_caloCompatibility_etaBin{}.json'.format(eb)) as f:
-        result = json.load(f)
+    #with open('roc_caloCompatibility_etaBin{}.json'.format(eb)) as f:
+    #    result = json.load(f)
     plot_hist('roc_{}_etaBin{}'.format(tag,eb),
         [results[jsonFile]['tpr']['etabin{}'.format(eb)] for jsonFile in jsonFiles],
         [results[jsonFile]['fpr']['etabin{}'.format(eb)] for jsonFile in jsonFiles],
@@ -140,26 +129,26 @@ for eb in range(neb):
         additional = etalabels[eb],
         working=result)
 
-with open('roc_caloCompatibility_pBins.json') as f:
-    result = json.load(f)
+#with open('roc_caloCompatibility_pBins.json') as f:
+#    result = json.load(f)
 plot_hist('roc_{}_pBins'.format(tag),
     [results[jsonFile]['tpr']['pbins'] for jsonFile in jsonFiles],
     [results[jsonFile]['fpr']['pbins'] for jsonFile in jsonFiles],
     labels = plabels,
     working=result)
 
-with open('roc_caloCompatibility_etaBins.json') as f:
-    result = json.load(f)
+#with open('roc_caloCompatibility_etaBins.json') as f:
+#    result = json.load(f)
 plot_hist('roc_{}_etaBins'.format(tag),
     [results[jsonFile]['tpr']['etabins'] for jsonFile in jsonFiles],
     [results[jsonFile]['fpr']['etabins'] for jsonFile in jsonFiles],
     labels = etalabels,
     working=result)
 
-with open('roc_caloCompatibility.json') as f:
-    result = json.load(f)
-plot_hist('roc_{}'.format(tag),
-    [results[jsonFile]['tpr']['all'] for jsonFile in jsonFiles],
-    [results[jsonFile]['fpr']['all'] for jsonFile in jsonFiles],
-    working=result)
+#with open('roc_caloCompatibility.json') as f:
+#    result = json.load(f)
+#plot_hist('roc_{}'.format(tag),
+#    [results[jsonFile]['tpr']['all'] for jsonFile in jsonFiles],
+#    [results[jsonFile]['fpr']['all'] for jsonFile in jsonFiles],
+#    working=result)
 

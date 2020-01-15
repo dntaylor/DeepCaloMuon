@@ -27,6 +27,10 @@ if os.path.exists(outDir):
 
 doElectron = False
 
+usePlaid = True
+if usePlaid:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+
 
 import numpy as np
 from keras.models import Model
@@ -39,7 +43,7 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from keras import backend as k
+from tensorflow.keras import backend as k
 
 import matplotlib as mpl
 mpl.use('Agg')
@@ -53,10 +57,11 @@ if doElectron:
 else:
     truth_classes = ['pion','muon']
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
-k.tensorflow_backend.set_session(tf.Session(config=config))
+if not usePlaid:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+    k.tensorflow_backend.set_session(tf.Session(config=config))
 
 # load all at once
 
@@ -191,7 +196,7 @@ def build_model(input_shapes, num_classes,
 
 callbacks = [
     ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False),
-    EarlyStopping(monitor='val_loss', patience=200, verbose=1, mode='min'),
+    EarlyStopping(monitor='val_loss', patience=40, verbose=1, mode='min'),
     CSVLogger('{}/training.csv'.format(outDir)),
 ]
 
@@ -203,7 +208,7 @@ modelArgs = {
     'batchnorm': True,
     'momentum': 0.6, # 0.6-0.85 for large batches (5k+), larger (0.9-0.99) for smaller batches
     'dropoutRate': 0.2,
-    'lr': 1e-4,
+    'lr': 1e-3,
 }
 
 X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()

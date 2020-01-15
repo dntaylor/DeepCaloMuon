@@ -9,7 +9,8 @@ import numpy as np
 from keras.models import load_model
 
 import tensorflow as tf
-from keras import backend as k
+# needed in tensorflow 2.0
+from tensorflow.keras import backend as k
 
 # this prepares a trained model and means/sigmas for use with CMSSW
 k.set_learning_phase(0)
