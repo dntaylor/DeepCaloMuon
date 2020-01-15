@@ -50,9 +50,9 @@ fnames = glob.glob('{}/*.root'.format(inDir))
 treename = 'muonTree/MuonTree'
 # must create these branches, they are what is output
 if doElectron:
-    out_truth = [b'pion',b'muon',b'electron']
+    out_truth = ['pion','muon','electron']
 else:
-    out_truth = [b'pion',b'muon']
+    out_truth = ['pion','muon']
 # weight bins
 weight_bins = [
     # muon_innerTrack_p
@@ -66,90 +66,90 @@ weight_bins = [
         dtype=float
     ),
 ]
-weight_bin_labels = [b'muon_innerTrack_p',b'muon_innerTrack_abseta']
+weight_bin_labels = ['muon_innerTrack_p','muon_innerTrack_abseta']
 weight_bin_axis_labels = [r'Track $p_{T}$', r'Track $|\eta|$']
-weight_branches = [b'muon_innerTrack_p',b'muon_innerTrack_eta']
-reference = b'muon'
+weight_branches = ['muon_innerTrack_p','muon_innerTrack_eta']
+reference = 'muon'
 # these are helper branches (perhaps truth info) that are not output
 other_branches = [
-    b'muon_gen_sim_pdgId',
-    b'muon_gen_sim_tpAssoQuality',
-    b'muon_pt',
-    b'muon_energy',
+    'muon_gen_sim_pdgId',
+    'muon_gen_sim_tpAssoQuality',
+    'muon_pt',
+    'muon_energy',
 ]
 # these are the branches that are output
 branches = [
-    #b'muon_innerTrack_pt',
-    b'muon_innerTrack_p',
-    b'muon_innerTrack_eta',
-    b'muon_innerTrack_phi',
-    b'muon_innerTrack_qoverp',
-    b'muon_innerTrack_qoverpError',
-    b'muon_innerTrack_validFraction',
-    b'muon_innerTrack_highPurity',
-    b'muon_innerTrack_hitPattern_trackerLayersWithMeasurement',
-    b'muon_innerTrack_hitPattern_pixelLayersWithMeasurement',
-    b'muon_isolationR03_nTracks',
-    b'muon_isolationR03_sumPt',
-    #b'muon_caloCompatibility',
-    #b'muon_calEnergy_ecal_time',
-    b'muon_calEnergy_em',
-    b'muon_calEnergy_emMax',
-    b'muon_calEnergy_emS25',
-    b'muon_calEnergy_emS9',
-    b'muon_calEnergy_had',
-    b'muon_calEnergy_hadMax',
-    b'muon_calEnergy_hadS9',
-    #b'muon_calEnergy_hcal_time',
-    b'muon_calEnergy_ho',
-    b'muon_calEnergy_hoS9',
-    #b'muon_calEnergy_tower',
-    #b'muon_calEnergy_towerS9',
-    b'muon_calEnergy_hcal_ieta',
-    b'muon_calEnergy_hcal_iphi',
-    b'muon_calEnergy_crossedHadRecHits_ieta',
-    b'muon_calEnergy_crossedHadRecHits_iphi',
-    b'muon_calEnergy_crossedHadRecHits_depth',
-    b'muon_calEnergy_crossedHadRecHits_energy',
-    b'muon_calEnergy_crossedHadRecHits_time',
-    b'muon_calEnergy_crossedHadRecHits_chi2',
+    #'muon_innerTrack_pt',
+    'muon_innerTrack_p',
+    'muon_innerTrack_eta',
+    'muon_innerTrack_phi',
+    'muon_innerTrack_qoverp',
+    'muon_innerTrack_qoverpError',
+    'muon_innerTrack_validFraction',
+    'muon_innerTrack_highPurity',
+    'muon_innerTrack_hitPattern_trackerLayersWithMeasurement',
+    'muon_innerTrack_hitPattern_pixelLayersWithMeasurement',
+    'muon_isolationR03_nTracks',
+    'muon_isolationR03_sumPt',
+    #'muon_caloCompatibility',
+    #'muon_calEnergy_ecal_time',
+    'muon_calEnergy_em',
+    'muon_calEnergy_emMax',
+    'muon_calEnergy_emS25',
+    'muon_calEnergy_emS9',
+    'muon_calEnergy_had',
+    'muon_calEnergy_hadMax',
+    'muon_calEnergy_hadS9',
+    #'muon_calEnergy_hcal_time',
+    'muon_calEnergy_ho',
+    'muon_calEnergy_hoS9',
+    #'muon_calEnergy_tower',
+    #'muon_calEnergy_towerS9',
+    'muon_calEnergy_hcal_ieta',
+    'muon_calEnergy_hcal_iphi',
+    'muon_calEnergy_crossedHadRecHits_ieta',
+    'muon_calEnergy_crossedHadRecHits_iphi',
+    'muon_calEnergy_crossedHadRecHits_depth',
+    'muon_calEnergy_crossedHadRecHits_energy',
+    'muon_calEnergy_crossedHadRecHits_time',
+    'muon_calEnergy_crossedHadRecHits_chi2',
 ]
 with open('{}/branches.txt'.format(outDir),'w') as f:
     for b in branches:
-        f.write(b.decode('utf-8')+'\n')
+        f.write(b+'\n')
 # energy branches to normalize against muon energy
 energy_branches = [
-    b'muon_calEnergy_em',
-    b'muon_calEnergy_emMax',
-    b'muon_calEnergy_emS25',
-    b'muon_calEnergy_emS9',
-    b'muon_calEnergy_had',
-    b'muon_calEnergy_hadMax',
-    b'muon_calEnergy_hadS9',
-    b'muon_calEnergy_ho',
-    b'muon_calEnergy_hoS9',
-    b'muon_calEnergy_tower',
-    b'muon_calEnergy_towerS9',
+    'muon_calEnergy_em',
+    'muon_calEnergy_emMax',
+    'muon_calEnergy_emS25',
+    'muon_calEnergy_emS9',
+    'muon_calEnergy_had',
+    'muon_calEnergy_hadMax',
+    'muon_calEnergy_hadS9',
+    'muon_calEnergy_ho',
+    'muon_calEnergy_hoS9',
+    'muon_calEnergy_tower',
+    'muon_calEnergy_towerS9',
 ]
 
 branch_groupings = [
-    [b for b in branches if b'muon_calEnergy_crossedHadRecHits' not in b],
-    [b for b in branches if b'muon_calEnergy_crossedHadRecHits' in b],
+    [b for b in branches if 'muon_calEnergy_crossedHadRecHits' not in b],
+    [b for b in branches if 'muon_calEnergy_crossedHadRecHits' in b],
 ]
-branch_lengths = {b: 15 for b in branches if b'muon_calEnergy_crossedHadRecHits' in b}
+branch_lengths = {b: 15 for b in branches if 'muon_calEnergy_crossedHadRecHits' in b}
 linear_branches = {
-    #b'muon_innerTrack_p': [1.5,7000.],
-    b'muon_innerTrack_eta': [-3.0,3.0],
-    b'muon_innerTrack_phi': [-np.pi,np.pi],
-    b'muon_innerTrack_hitPattern_trackerLayersWithMeasurement': [0.,20.],
-    b'muon_innerTrack_hitPattern_pixelLayersWithMeasurement':[0.,5.],
-    b'muon_isolationR03_nTracks':[0.,15.],
-    b'muon_calEnergy_hcal_ieta':[-30.,30.],
-    b'muon_calEnergy_hcal_iphi':[0.,72.],
-    #b'muon_calEnergy_crossedHadRecHits_depth':[0,8],
+    #'muon_innerTrack_p': [1.5,7000.],
+    'muon_innerTrack_eta': [-3.0,3.0],
+    'muon_innerTrack_phi': [-np.pi,np.pi],
+    'muon_innerTrack_hitPattern_trackerLayersWithMeasurement': [0.,20.],
+    'muon_innerTrack_hitPattern_pixelLayersWithMeasurement':[0.,5.],
+    'muon_isolationR03_nTracks':[0.,15.],
+    'muon_calEnergy_hcal_ieta':[-30.,30.],
+    'muon_calEnergy_hcal_iphi':[0.,72.],
+    #'muon_calEnergy_crossedHadRecHits_depth':[0,8],
 }
 loglinear_branches = {
-    b'muon_innerTrack_p': [1.5,7000.],
+    'muon_innerTrack_p': [1.5,7000.],
 }
 
 # get weights
@@ -157,18 +157,18 @@ print('Calculating weights')
 distributions = {}
 for fname in fnames:
     #print(fname)
-    for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,entrysteps=1000000000):
-        arrays[b'muon_innerTrack_abseta'] = abs(arrays[b'muon_innerTrack_eta'])
+    for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,namedecode="utf-8",entrysteps=1000000000):
+        arrays['muon_innerTrack_abseta'] = abs(arrays['muon_innerTrack_eta'])
         if doElectron:
-            keep =  ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
-                | (abs(arrays[b'muon_gen_sim_pdgId'])==11)
-                | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+            keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                | (abs(arrays['muon_gen_sim_pdgId'])==11)
+                | (abs(arrays['muon_gen_sim_pdgId'])==211))
         else:
-            keep =  ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
-                | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
-        arrays[b'muon'] = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
-        arrays[b'pion'] = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
-        arrays[b'electron'] = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
+            keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                | (abs(arrays['muon_gen_sim_pdgId'])==211))
+        arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
+        arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
+        arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
 
         for truth in out_truth:
             hist, xedges, yedges = np.histogram2d(
@@ -209,29 +209,29 @@ def plot_hist(hist,outname):
     fig.savefig(outname)
     plt.close()
 for truth in out_truth:
-    plot_hist(weight_distributions[truth],'{}/weight_{}.png'.format(outDir,truth.decode('utf-8')))
+    plot_hist(weight_distributions[truth],'{}/weight_{}.png'.format(outDir,truth))
 
 def transform(arrays):
     for key in branches:
         if key not in arrays: continue
         # normalize sumpt
-        if key==b'muon_isolationR03_sumPt':
-            arrays[key] = arrays[key]/arrays[b'muon_pt']
+        if key=='muon_isolationR03_sumPt':
+            arrays[key] = arrays[key]/arrays['muon_pt']
         # shift ieta, iphi to be centered at 0
-        if key==b'muon_calEnergy_crossedHadRecHits_ieta':
-            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_ieta']
-        if key==b'muon_calEnergy_crossedHadRecHits_iphi':
-            arrays[key] = arrays[key]-arrays[b'muon_calEnergy_hcal_iphi']
+        if key=='muon_calEnergy_crossedHadRecHits_ieta':
+            arrays[key] = arrays[key]-arrays['muon_calEnergy_hcal_ieta']
+        if key=='muon_calEnergy_crossedHadRecHits_iphi':
+            arrays[key] = arrays[key]-arrays['muon_calEnergy_hcal_iphi']
         # normalize hcal digi energy to total hcal energy
-        if key==b'muon_calEnergy_crossedHadRecHits_energy':
+        if key=='muon_calEnergy_crossedHadRecHits_energy':
             arrays[key] = arrays[key]/arrays[key].sum()
         # normalize energies relative to the muon energy
         if key in energy_branches:
-            arrays[key] = arrays[key]/arrays[b'muon_energy']
+            arrays[key] = arrays[key]/arrays['muon_energy']
         # prevent very different default values
-        if key==b'muon_calEnergy_crossedHadRecHits_time':
+        if key=='muon_calEnergy_crossedHadRecHits_time':
             arrays[key][(arrays[key]<-20)] = -20
-        if key==b'muon_calEnergy_crossedHadRecHits_chi2':
+        if key=='muon_calEnergy_crossedHadRecHits_chi2':
             arrays[key][(arrays[key]<-5)] = -5
     return arrays
 
@@ -239,7 +239,7 @@ def transform(arrays):
 print('Calculating means')
 means_sum = {key:[] for key in branches}
 varis_sum = {key:[] for key in branches}
-for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,entrysteps=100000000):
+for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,namedecode="utf-8",entrysteps=100000000):
     means = {}
     varis = {}
     for key in arrays:
@@ -262,10 +262,10 @@ for key in sorted(means):
     print(key,means[key],stds[key])
 
 result = {
-    'means':{key.decode('utf-8'):float(item) for key,item in means.items()},
-    'stds':{key.decode('utf-8'):float(item) for key,item in stds.items()},
-    'linear': {key.decode('utf-8'):item for key,item in linear_branches.items()},
-    'loglinear': {key.decode('utf-8'):item for key,item in loglinear_branches.items()},
+    'means':{key:float(item) for key,item in means.items()},
+    'stds':{key:float(item) for key,item in stds.items()},
+    'linear': {key:item for key,item in linear_branches.items()},
+    'loglinear': {key:item for key,item in loglinear_branches.items()},
 }
 with open('{}/means.json'.format(outDir),'w') as f:
     json.dump(result,f)
@@ -273,8 +273,8 @@ with open('{}/means.json'.format(outDir),'w') as f:
 
 def weighting(arrays):
     # create abseta
-    arrays[b'muon_innerTrack_abseta'] = abs(arrays[b'muon_innerTrack_eta'])
-    arrays[b'weight'] = np.zeros(arrays[b'muon_innerTrack_abseta'].shape)
+    arrays['muon_innerTrack_abseta'] = abs(arrays['muon_innerTrack_eta'])
+    arrays['weight'] = np.zeros(arrays['muon_innerTrack_abseta'].shape)
     for truth in out_truth:
         for xi in range(len(xedges)-1):
             for yi in range(len(yedges)-1):
@@ -283,7 +283,7 @@ def weighting(arrays):
                     & (arrays[weight_bin_labels[0]]<xedges[xi+1])
                     & (arrays[weight_bin_labels[1]]>yedges[yi]) 
                     & (arrays[weight_bin_labels[1]]<yedges[yi+1]))
-                arrays[b'weight'][mask] = weight_distributions[truth][xi][yi]
+                arrays['weight'][mask] = weight_distributions[truth][xi][yi]
     return arrays
 
 def normalize(arrays):
@@ -305,7 +305,7 @@ def padtruncate(arrays):
 
 def convert_fname(fname,i):
     #print('Processing',fname)
-    for arrays in uproot.iterate(fname,treename,other_branches+branches,entrysteps=100000000):
+    for arrays in uproot.iterate(fname,treename,other_branches+branches,namedecode="utf-8",entrysteps=100000000):
         isval = i%10==1
         # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
         #print('Converting',i)
@@ -316,20 +316,20 @@ def convert_fname(fname,i):
         #print('Reducing',i)
         if not isval: 
             if doElectron:
-                keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
-                    | (abs(arrays[b'muon_gen_sim_pdgId'])==11)
-                    | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
+                keep = ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays['muon_gen_sim_pdgId'])==11)
+                    | (abs(arrays['muon_gen_sim_pdgId'])==211))
             else:
-                keep = ((abs(arrays[b'muon_gen_sim_pdgId'])==13) 
-                    | (abs(arrays[b'muon_gen_sim_pdgId'])==211))
-            keep = (keep & (arrays[b'muon_gen_sim_tpAssoQuality']>0.5)) # try only keeping high quality matches
+                keep = ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays['muon_gen_sim_pdgId'])==211))
+            keep = (keep & (arrays['muon_gen_sim_tpAssoQuality']>0.5)) # try only keeping high quality matches
         else:
-            keep = (np.zeros(arrays[b'muon_gen_sim_pdgId'].shape)==0)
+            keep = (np.zeros(arrays['muon_gen_sim_pdgId'].shape)==0)
         for key in arrays:
             arrays[key] = arrays[key][keep]
-        arrays[b'muon'] = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
-        arrays[b'pion'] = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
-        arrays[b'electron'] = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
+        arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
+        arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
+        arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
         #for t in out_truth: print(t,arrays[t].sum())
 
         # calculate weight
@@ -352,7 +352,7 @@ def convert_fname(fname,i):
         # convert to numpy
         if isval:
             #print('Preparing',i)
-            W = arrays[b'weight']
+            W = arrays['weight']
             # note: this stacks the list of arrays that happens if a branch is an array
             X = [np.swapaxes(np.stack([arrays[ab] for ab in groupb]),0,1) for groupb in branch_groupings]
             Y = np.swapaxes(np.stack([arrays[ot] for ot in out_truth]),0,1)
@@ -367,17 +367,17 @@ def convert_fname(fname,i):
                 f.write(fname)
         else:
             #print('Preparing',i)
-            W = {truth: arrays[b'weight'][arrays[truth]] for truth in out_truth}
+            W = {truth: arrays['weight'][arrays[truth]] for truth in out_truth}
             X = {truth: [np.swapaxes(np.stack([arrays[ab][arrays[truth]] for ab in groupb]),0,1) for groupb in branch_groupings] for truth in out_truth}
             Y = {truth: np.swapaxes(np.stack([arrays[ot][arrays[truth]] for ot in out_truth]),0,1) for truth in out_truth}
 
             #print('Saving',i)
             name = 'output'
             for truth in out_truth:
-                np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth.decode('utf-8'),i),W[truth])
+                np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth,i),W[truth])
                 for j,x in enumerate(X[truth]):
-                    np.save('{}/{}_{}_{}.x{}.npy'.format(outDir,name,truth.decode('utf-8'),i,j),x)
-                np.save('{}/{}_{}_{}.y.npy'.format(outDir,name,truth.decode('utf-8'),i),Y[truth])
+                    np.save('{}/{}_{}_{}.x{}.npy'.format(outDir,name,truth,i,j),x)
+                np.save('{}/{}_{}_{}.y.npy'.format(outDir,name,truth,i),Y[truth])
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
 

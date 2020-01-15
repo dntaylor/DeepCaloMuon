@@ -56,7 +56,7 @@ linear = means_result['linear']
 loglinear = means_result['loglinear']
 
 gen_branches = [
-    b'muon_gen_sim_pdgId',
+    'muon_gen_sim_pdgId',
 ]
 
 truths = ['muon','pion','electron']
@@ -111,12 +111,12 @@ def plot_input(savename,arrays,**kwargs):
 
 
 # first plot the inputs
-for arrays in uproot.iterate(fnames,treename,branches+gen_branches,entrysteps=1000000):
+for arrays in uproot.iterate(fnames,treename,branches+gen_branches,namedecode="utf-8",entrysteps=1000000):
     print(arrays.keys())
 
-    muon = (abs(arrays[b'muon_gen_sim_pdgId'])==13)
-    pion = (abs(arrays[b'muon_gen_sim_pdgId'])==211)
-    electron = (abs(arrays[b'muon_gen_sim_pdgId'])==11)
+    muon = (abs(arrays['muon_gen_sim_pdgId'])==13)
+    pion = (abs(arrays['muon_gen_sim_pdgId'])==211)
+    electron = (abs(arrays['muon_gen_sim_pdgId'])==11)
 
     for key in arrays:
         if key in gen_branches: continue
@@ -127,7 +127,7 @@ for arrays in uproot.iterate(fnames,treename,branches+gen_branches,entrysteps=10
         for truth in toPlot:
             if isinstance(toPlot[truth],awkward.JaggedArray):
                 toPlot[truth] = toPlot[truth].flatten()
-        savename = '{}/input_{}'.format(plotDir,key.decode('utf-8'))
+        savename = '{}/input_{}'.format(plotDir,key)
         plot_input(savename,toPlot)
 
     break
