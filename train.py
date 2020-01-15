@@ -135,7 +135,7 @@ def build_model(input_shapes, num_classes,
                 dropoutRate=0.2, lr=0.0001, 
                 width = 128, depth=4,
                 pattern=[], kernel=[],
-                doLSTM=True):
+                doLSTM=True,lstmWidth=128):
     if len(kernel) != len(pattern): kernel = [1]*len(pattern)
 
     inputs = [Input(shape=s) for s in input_shapes]
@@ -153,7 +153,7 @@ def build_model(input_shapes, num_classes,
 
         # LSTM
         if doLSTM:
-            x = LSTM(128,go_backwards=True,implementation=2, name='{}_lstm'.format(1))(x)
+            x = LSTM(lstmWidth,go_backwards=True,implementation=2, name='{}_lstm'.format(1))(x)
             if batchnorm:
                 x = BatchNormalization(momentum=momentum,name='{}_lstm_batchnorm'.format(i))(x)
             x = Dropout(dropoutRate,name='{}_lstm_dropout'.format(i))(x)
@@ -197,6 +197,7 @@ callbacks = [
 
 modelArgs = {
     'doLSTM': False,
+    'lstmWidth': 128,
     'depth': 4,
     'width': 128,
     'batchnorm': True,
