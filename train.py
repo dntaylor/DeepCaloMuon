@@ -25,9 +25,9 @@ if os.path.exists(outDir):
     print(outDir,'already exists')
     sys.exit(0)
 
-doElectron = False
+doElectron = True
 
-usePlaid = True
+usePlaid = False
 if usePlaid:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
@@ -43,15 +43,14 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from tensorflow.keras import backend as k
+#from tensorflow.keras import backend as k
+from keras import backend as k
 
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-from utilities import python_mkdir
-
-python_mkdir(outDir)
+os.makedirs(outDir, exist_ok=True)
 if doElectron:
     truth_classes = ['pion','muon','electron']
 else:
@@ -196,7 +195,7 @@ def build_model(input_shapes, num_classes,
 
 callbacks = [
     ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False),
-    EarlyStopping(monitor='val_loss', patience=40, verbose=1, mode='min'),
+    EarlyStopping(monitor='val_loss', patience=20, verbose=1, mode='min'),
     CSVLogger('{}/training.csv'.format(outDir)),
 ]
 

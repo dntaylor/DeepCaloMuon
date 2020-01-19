@@ -8,7 +8,7 @@ from array import array
 import ROOT
 ROOT.gROOT.SetBatch()
 
-usePlaid = True
+usePlaid = False
 if usePlaid:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
@@ -16,7 +16,8 @@ import numpy as np
 from keras.models import load_model
 
 import tensorflow as tf
-from tensorflow.keras import backend as k
+#from tensorflow.keras import backend as k
+from keras import backend as k
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.utils.multiclass import unique_labels
 
@@ -43,7 +44,7 @@ args = parser.parse_args()
 
 inDir = args.convertDir
 outDir = args.trainDir
-doElectron = False
+doElectron = True
 
 # load all at once
 nx = args.numX

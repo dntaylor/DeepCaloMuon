@@ -33,16 +33,16 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%
 inDir = args.rootDir
 outDir = args.convertDir
 plotDir = outDir+'/features'
-doElectron = False
+doElectron = True
 if os.path.exists(plotDir):
     print(plotDir, 'already exists')
     sys.exit(0)
 
 
-python_mkdir(plotDir)
+os.makedirs(plotDir, exist_ok=True)
 
 fnames = glob.glob('{}/*.root'.format(inDir))
-treename = 'muonTree/MuonTree'
+treename = 'deepMuonTree/DeepMuonTree'
 
 with open('{}/means.json'.format(outDir)) as f:
     means_result = json.load(f)

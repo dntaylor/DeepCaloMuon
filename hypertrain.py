@@ -33,7 +33,7 @@ if os.path.exists(outDir):
         print('exiting')
         sys.exit(0)
 
-usePlaid = True
+usePlaid = False
 if usePlaid:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
@@ -50,7 +50,8 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-from tensorflow.keras import backend as k
+#from tensorflow.keras import backend as k
+from keras import backend as k
 
 from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
 import joblib

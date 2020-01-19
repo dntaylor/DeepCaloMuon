@@ -18,8 +18,6 @@ import errno
 import logging
 from tqdm.auto import tqdm
 
-from utilities import python_mkdir
-
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -36,18 +34,27 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%
 
 NTHREADS = 16
 parallel = True # TODO: reimplement
-doElectron = False
+doElectron = True
 
 inDir = args.rootDir
 outDir = args.convertDir
 if os.path.exists(outDir):
-    print(outDir, 'already exists')
+    logging.info(f'{outDir} already exists')
     sys.exit(0)
 
-python_mkdir(outDir)
+os.makedirs(outDir, exist_ok=True)
 
-fnames = glob.glob('{}/*.root'.format(inDir))
-treename = 'muonTree/MuonTree'
+# get all root files in the directory
+fnames = []
+for r, d, f in os.walk(inDir):
+    for fname in f:
+        if fname.endswith('.root'):
+            fnames += [os.path.join(r,fname)]
+
+fnames = [fname for fname in fnames if 'JpsiToMuMu_JpsiPt8_TuneCP5_14TeV-pythia8' not in fname]
+logging.info('Will convert {} files'.format(len(fnames)))
+
+treename = 'deepMuonTree/DeepMuonTree'
 # must create these branches, they are what is output
 if doElectron:
     out_truth = ['pion','muon','electron']
@@ -153,33 +160,33 @@ loglinear_branches = {
 }
 
 # get weights
-print('Calculating weights')
 distributions = {}
-for fname in fnames:
-    #print(fname)
-    for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,namedecode="utf-8",entrysteps=1000000000):
-        arrays['muon_innerTrack_abseta'] = abs(arrays['muon_innerTrack_eta'])
-        if doElectron:
-            keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
-                | (abs(arrays['muon_gen_sim_pdgId'])==11)
-                | (abs(arrays['muon_gen_sim_pdgId'])==211))
-        else:
-            keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
-                | (abs(arrays['muon_gen_sim_pdgId'])==211))
-        arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
-        arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
-        arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
-
-        for truth in out_truth:
-            hist, xedges, yedges = np.histogram2d(
-                arrays[weight_bin_labels[0]][arrays[truth]],
-                arrays[weight_bin_labels[1]][arrays[truth]],
-                weight_bins
-            )
-            if truth in distributions:
-                distributions[truth] = distributions[truth]+hist
+with tqdm(unit='files', total=len(fnames), desc='Calculating weights') as pbar:
+    for fname in fnames:
+        for arrays in uproot.iterate(fname,treename,other_branches+weight_branches,namedecode="utf-8",entrysteps=1000000000):
+            arrays['muon_innerTrack_abseta'] = abs(arrays['muon_innerTrack_eta'])
+            if doElectron:
+                keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays['muon_gen_sim_pdgId'])==11)
+                    | (abs(arrays['muon_gen_sim_pdgId'])==211))
             else:
-                distributions[truth] = hist
+                keep =  ((abs(arrays['muon_gen_sim_pdgId'])==13) 
+                    | (abs(arrays['muon_gen_sim_pdgId'])==211))
+            arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
+            arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
+            arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
+    
+            for truth in out_truth:
+                hist, xedges, yedges = np.histogram2d(
+                    arrays[weight_bin_labels[0]][arrays[truth]],
+                    arrays[weight_bin_labels[1]][arrays[truth]],
+                    weight_bins
+                )
+                if truth in distributions:
+                    distributions[truth] = distributions[truth]+hist
+                else:
+                    distributions[truth] = hist
+        pbar.update(1)
 
 def divide_distributions(a,b):
     out = np.array(a)
@@ -187,6 +194,7 @@ def divide_distributions(a,b):
         for j in range(a.shape[1]):
             out[i][j] = a[i][j]/b[i][j] if b[i][j] else 1
     return out
+
 
 # normalize
 for truth in out_truth:
@@ -236,30 +244,32 @@ def transform(arrays):
     return arrays
 
 # get means
-print('Calculating means')
 means_sum = {key:[] for key in branches}
 varis_sum = {key:[] for key in branches}
-for arrays in uproot.iterate(fnames[0],treename,branches+other_branches,namedecode="utf-8",entrysteps=100000000):
-    means = {}
-    varis = {}
-    for key in arrays:
-        # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
-        if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
-    arrays = transform(arrays)
-    for key in arrays:
-        if key not in branches: continue
-        a = arrays[key]
-        while isinstance(a,awkward.JaggedArray): a = a.flatten()
-        means[key] = a[~np.isnan(a)].mean()
-        varis[key] = a[~np.isnan(a)].var()
-        means_sum[key] += [means[key]]
-        varis_sum[key] += [varis[key]]
+with tqdm(unit='files', total=len(fnames), desc='Calculating means') as pbar:
+    for fname in fnames:
+        for arrays in uproot.iterate(fname,treename,branches+other_branches,namedecode="utf-8",entrysteps=100000000):
+            means = {}
+            varis = {}
+            for key in arrays:
+                # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
+                if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
+            arrays = transform(arrays)
+            for key in arrays:
+                if key not in branches: continue
+                a = arrays[key]
+                while isinstance(a,awkward.JaggedArray): a = a.flatten()
+                means[key] = a[~np.isnan(a)].mean()
+                varis[key] = a[~np.isnan(a)].var()
+                means_sum[key] += [means[key]]
+                varis_sum[key] += [varis[key]]
+        pbar.update(1)
 means = {key: np.array(means_sum[key]).mean() for key in branches}
 varis = {key: np.array(varis_sum[key]).mean() for key in branches}
 stds  = {key: np.sqrt(np.array(varis_sum[key]).mean()) for key in branches}
 
 for key in sorted(means):
-    print(key,means[key],stds[key])
+    logging.info(f'{key} {means[key]} +/- {stds[key]}')
 
 result = {
     'means':{key:float(item) for key,item in means.items()},
@@ -304,16 +314,13 @@ def padtruncate(arrays):
     return arrays
 
 def convert_fname(fname,i):
-    #print('Processing',fname)
     for arrays in uproot.iterate(fname,treename,other_branches+branches,namedecode="utf-8",entrysteps=100000000):
         isval = i%10==1
         # convert vector<vector<T>> (ObjectArray by default) into nested JaggedArray
-        #print('Converting',i)
         for key in other_branches+branches:
             if isinstance(arrays[key],awkward.ObjectArray): arrays[key] = awkward.fromiter(arrays[key])
 
         # selections
-        #print('Reducing',i)
         if not isval: 
             if doElectron:
                 keep = ((abs(arrays['muon_gen_sim_pdgId'])==13) 
@@ -330,34 +337,32 @@ def convert_fname(fname,i):
         arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
         arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
         arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
-        #for t in out_truth: print(t,arrays[t].sum())
 
         # calculate weight
-        #print('Weighting',i)
         arrays = weighting(arrays)
 
         # transform
-        #print('Transforming',i)
         arrays = transform(arrays)
 
         # zero pad and truncate
-        #print('Padding and truncating',i)
         arrays = padtruncate(arrays)
     
         # normalize
-        #print('Normalizing',i)
         arrays = normalize(arrays)
 
-    
         # convert to numpy
-        if isval:
-            #print('Preparing',i)
-            W = arrays['weight']
+        def get_output(arrays,out_truth,selection=None):
+            if selection is None:
+                selection = np.ones_like(arrays['weight'], dtype=bool)
+            W = arrays['weight'][selection]
             # note: this stacks the list of arrays that happens if a branch is an array
-            X = [np.swapaxes(np.stack([arrays[ab] for ab in groupb]),0,1) for groupb in branch_groupings]
-            Y = np.swapaxes(np.stack([arrays[ot] for ot in out_truth]),0,1)
-    
-            #print('Saving',i)
+            X = [np.swapaxes(np.stack([arrays[ab][selection] for ab in groupb]),0,1) for groupb in branch_groupings]
+            Y = np.swapaxes(np.stack([arrays[ot][selection] for ot in out_truth]),0,1)
+            return W, X, Y
+
+        if isval:
+            W, X, Y = get_output(arrays,out_truth)
+
             name = 'output_validation'
             np.save('{}/{}_{}.w.npy'.format(outDir,name,i),W)
             for j,x in enumerate(X):
@@ -366,12 +371,10 @@ def convert_fname(fname,i):
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
         else:
-            #print('Preparing',i)
-            W = {truth: arrays['weight'][arrays[truth]] for truth in out_truth}
-            X = {truth: [np.swapaxes(np.stack([arrays[ab][arrays[truth]] for ab in groupb]),0,1) for groupb in branch_groupings] for truth in out_truth}
-            Y = {truth: np.swapaxes(np.stack([arrays[ot][arrays[truth]] for ot in out_truth]),0,1) for truth in out_truth}
+            W, X, Y = {}, {}, {}
+            for truth in out_truth:
+                W[truth], X[truth], Y[truth] = get_output(arrays,out_truth,arrays[truth])
 
-            #print('Saving',i)
             name = 'output'
             for truth in out_truth:
                 np.save('{}/{}_{}_{}.w.npy'.format(outDir,name,truth,i),W[truth])
@@ -380,6 +383,7 @@ def convert_fname(fname,i):
                 np.save('{}/{}_{}_{}.y.npy'.format(outDir,name,truth,i),Y[truth])
             with open('{}/{}_{}.input'.format(outDir,name,i),'w') as f:
                 f.write(fname)
+    
 
 def _futures_handler(futures_set, status=True, unit='items', desc='Processing'):
     try:
@@ -395,8 +399,8 @@ def _futures_handler(futures_set, status=True, unit='items', desc='Processing'):
         for job in futures_set:
             job.cancel()
         if status:
-            print("Received SIGINT, killed pending jobs.  Running jobs will continue to completion.", file=sys.stderr)
-            print("Running jobs:", sum(1 for j in futures_set if j.running()), file=sys.stderr)
+            logging.info("Received SIGINT, killed pending jobs.  Running jobs will continue to completion.", file=sys.stderr)
+            logging.info("Running jobs:", sum(1 for j in futures_set if j.running()), file=sys.stderr)
     except Exception:
         for job in futures_set:
             job.cancel()
@@ -409,10 +413,5 @@ def _futures_handler(futures_set, status=True, unit='items', desc='Processing'):
 # currently break apart by file
 # would like to break apart by chunks
 with concurrent.futures.ThreadPoolExecutor(NTHREADS) as executor:
-    #inds = range(len(fnames))
-    #results = executor.map(convert_fname,fnames,inds)
-    #for r in results: # just so it throws an error
-    #    if r: print(r)
-    #executor.shutdown()
     futures = set(executor.submit(convert_fname, fname, i) for i, fname in enumerate(fnames))
     _futures_handler(futures, status=True, unit='items', desc='Processing')
