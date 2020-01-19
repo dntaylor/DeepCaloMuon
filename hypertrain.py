@@ -15,6 +15,10 @@ parser.add_argument('trainDir', type=str,
                     help='Output directory')
 parser.add_argument('numX', type=int,
                     help='The number of X arrays')
+parser.add_argument('--electron', action='store_true',
+                    help='Add electron as truth')
+parser.add_argument('--plaid', action='store_true',
+                    help='Use plaid (for Mac)')
 
 
 args = parser.parse_args()
@@ -23,7 +27,7 @@ args = parser.parse_args()
 inDir = args.convertDir
 outDir = args.trainDir
 optimize = True
-doElectron = False
+doElectron = args.electron
 trials_file = '{}/trials'.format(outDir)
 if os.path.exists(outDir):
     print(outDir,'already exists')
@@ -33,7 +37,7 @@ if os.path.exists(outDir):
         print('exiting')
         sys.exit(0)
 
-usePlaid = False
+usePlaid = args.plaid
 if usePlaid:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
@@ -50,8 +54,10 @@ from keras.utils import Sequence
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-#from tensorflow.keras import backend as k
-from keras import backend as k
+if tf.__version__.startswith('2'):
+    from tensorflow.keras import backend as k
+else:
+    from keras import backend as k
 
 from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
 import joblib

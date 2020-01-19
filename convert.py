@@ -27,6 +27,8 @@ parser.add_argument('rootDir', type=str,
                     help='Directory of input root files')
 parser.add_argument('convertDir', type=str,
                     help='Output directory')
+parser.add_argument('--electron', action='store_true',
+                    help='Add electron as truth')
 
 args = parser.parse_args()
 
@@ -34,7 +36,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%
 
 NTHREADS = 16
 parallel = True # TODO: reimplement
-doElectron = True
+doElectron = args.electron
 
 inDir = args.rootDir
 outDir = args.convertDir

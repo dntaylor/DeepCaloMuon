@@ -25,6 +25,8 @@ parser.add_argument('rootDir', type=str,
                     help='Directory of input root files')
 parser.add_argument('convertDir', type=str,
                     help='Output directory')
+parser.add_argument('--electron', action='store_true',
+                    help='Add electron as truth')
 
 args = parser.parse_args()
 
@@ -33,7 +35,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s.%
 inDir = args.rootDir
 outDir = args.convertDir
 plotDir = outDir+'/features'
-doElectron = True
+doElectron = args.electron
 if os.path.exists(plotDir):
     print(plotDir, 'already exists')
     sys.exit(0)

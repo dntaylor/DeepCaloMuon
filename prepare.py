@@ -9,9 +9,10 @@ import numpy as np
 from keras.models import load_model
 
 import tensorflow as tf
-# needed in tensorflow 2.0
-#from tensorflow.keras import backend as k
-from keras import backend as k
+if tf.__version__.startswith('2'):
+    from tensorflow.keras import backend as k
+else:
+    from keras import backend as k
 
 # this prepares a trained model and means/sigmas for use with CMSSW
 k.set_learning_phase(0)
@@ -22,6 +23,8 @@ parser.add_argument('convertDir', type=str,
                     help='Directory of input numpy arrays')
 parser.add_argument('trainDir', type=str,
                     help='Directory of trained model')
+parser.add_argument('--electron', action='store_true',
+                    help='Add electron as truth')
 
 args = parser.parse_args()
 

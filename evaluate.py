@@ -8,7 +8,24 @@ from array import array
 import ROOT
 ROOT.gROOT.SetBatch()
 
-usePlaid = False
+parser = argparse.ArgumentParser(description='Evaluate')
+parser.add_argument('convertDir', type=str, 
+                    help='Directory of input numpy arrays')
+parser.add_argument('trainDir', type=str,
+                    help='Directory of trained model')
+parser.add_argument('numX', type=int,
+                    help='The number of X arrays')
+parser.add_argument('--electron', action='store_true',
+                    help='Add electron as truth')
+parser.add_argument('--plaid', action='store_true',
+                    help='Use plaid (for Mac)')
+
+args = parser.parse_args()
+
+inDir = args.convertDir
+outDir = args.trainDir
+doElectron = args.electron
+usePlaid = args.plaid
 if usePlaid:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
@@ -16,8 +33,10 @@ import numpy as np
 from keras.models import load_model
 
 import tensorflow as tf
-#from tensorflow.keras import backend as k
-from keras import backend as k
+if tf.__version__.startswith('2'):
+    from tensorflow.keras import backend as k
+else:
+    from keras import backend as k
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.utils.multiclass import unique_labels
 
@@ -31,20 +50,6 @@ if not usePlaid:
     config.gpu_options.per_process_gpu_memory_fraction = 0.6
     k.tensorflow_backend.set_session(tf.Session(config=config))
 
-parser = argparse.ArgumentParser(description='Evaluate')
-parser.add_argument('convertDir', type=str, 
-                    help='Directory of input numpy arrays')
-parser.add_argument('trainDir', type=str,
-                    help='Directory of trained model')
-parser.add_argument('numX', type=int,
-                    help='The number of X arrays')
-
-args = parser.parse_args()
-
-
-inDir = args.convertDir
-outDir = args.trainDir
-doElectron = True
 
 # load all at once
 nx = args.numX
