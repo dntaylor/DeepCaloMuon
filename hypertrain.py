@@ -334,16 +334,18 @@ hyperspace = {
     ]),
     'depth': hp.quniform('depth',1,8,1),
     'width': hp.quniform('width',32,256,1),
-    'batchnorm': hp.choice('batchnorm',[
-        #(True, hp.loguniform('momentum',-0.6,-0.01)),
-        (True, hp.choice('momentum',[0.6])),
-        (False, 0)
-    ]),
+    #'batchnorm': hp.choice('batchnorm',[
+    #    #(True, hp.loguniform('momentum',-0.6,-0.01)),
+    #    (True, hp.choice('momentum',[0.6])),
+    #    (False, 0)
+    #]),
+    'batchnorm': hp.choice('batchnorm',[True]),
+    'momentum': hp.choice('momentum',[0.6]),
     #'dropoutRate': hp.uniform('dropoutRate',0.0,0.5),
     'dropoutRate': hp.choice('dropoutRate',[0.2]),
     'lr': hp.loguniform('lr',-12,-5),
     #'epochs': hp.quniform('epochs',10,400,1),
-    'epochs': hp.choice('epochs',[200]),
+    'epochs': hp.choice('epochs',[20]),
 }
 
 if optimize:
