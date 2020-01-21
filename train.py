@@ -38,10 +38,10 @@ if usePlaid:
 
 import numpy as np
 from keras.models import Model
-from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, LSTM, Convolution1D
+from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, LSTM, Convolution1D, Masking
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam
-from keras.callbacks import Callback, EarlyStopping, History, ModelCheckpoint, CSVLogger
+from keras.callbacks import Callback, EarlyStopping, History, ModelCheckpoint, CSVLogger, ReduceLROnPlateau
 from keras.utils import Sequence
 
 from sklearn.model_selection import train_test_split
@@ -155,18 +155,19 @@ def build_model(input_shapes, num_classes,
     for i in range(1,len(input_shapes)):
         x = inputs[i]
         for j,p in enumerate(pattern):
-            x  = Convolution1D(p, kernel[j], kernel_initializer='lecun_uniform',  activation='relu', name='{}_conv{}'.format(i,j))(x)
+            x  = Convolution1D(p, kernel[j], kernel_initializer='lecun_uniform',  activation='relu', name='conv_{}_{}'.format(i,j))(x)
             if j<len(pattern)-1:
                 if batchnorm:
-                    x = BatchNormalization(momentum=momentum ,name='{}_conv_batchnorm{}'.format(i,j))(x)
-                x = Dropout(dropoutRate,name='{}_conv_dropout{}'.format(i,j))(x)
+                    x = BatchNormalization(momentum=momentum ,name='conv_batchnorm_{}_{}'.format(i,j))(x)
+                x = Dropout(dropoutRate,name='conv_dropout_{}_{}'.format(i,j))(x)
 
         # LSTM
         if doLSTM:
-            x = LSTM(lstmWidth,go_backwards=True,implementation=2, name='{}_lstm'.format(1))(x)
+            x = Masking(mask_value=0., name='masking_{}'.format(i))(x)
+            x = LSTM(lstmWidth,implementation=2, name='lstm_{}'.format(i))(x)
             if batchnorm:
-                x = BatchNormalization(momentum=momentum,name='{}_lstm_batchnorm'.format(i))(x)
-            x = Dropout(dropoutRate,name='{}_lstm_dropout'.format(i))(x)
+                x = BatchNormalization(momentum=momentum,name='lstm_batchnorm_{}'.format(i))(x)
+            x = Dropout(dropoutRate,name='lstm_dropout_{}'.format(i))(x)
         # flatten
         else:
             x = Flatten()(x)
@@ -180,9 +181,9 @@ def build_model(input_shapes, num_classes,
         layer = concat[0]
 
     for i in range(depth):
-        layer = Dense(width, activation='relu', kernel_initializer='lecun_uniform', name='dense{}'.format(i))(layer)
+        layer = Dense(width, activation='relu', kernel_initializer='lecun_uniform', name='dense_{}'.format(i))(layer)
         if batchnorm:
-            layer = BatchNormalization(momentum=momentum, name='dense_batchnorm{}'.format(i))(layer)
+            layer = BatchNormalization(momentum=momentum, name='dense_batchnorm_{}'.format(i))(layer)
         layer = Dropout(dropoutRate, name='dense_dropout{}'.format(i))(layer)
 
     prediction = Dense(num_classes, activation='softmax', kernel_initializer='lecun_uniform', name='ID_pred')(layer)
@@ -200,13 +201,14 @@ def build_model(input_shapes, num_classes,
     return model
 
 callbacks = [
-    ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False),
-    EarlyStopping(monitor='val_loss', patience=20, verbose=1, mode='min'),
+    ModelCheckpoint('{}/KERAS_check_best_model.h5'.format(outDir), monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False),
+    EarlyStopping(monitor='val_loss', patience=20, verbose=0, mode='min'),
+    ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6, verbose=0, mode='min'),
     CSVLogger('{}/training.csv'.format(outDir)),
 ]
 
 modelArgs = {
-    'doLSTM': False,
+    'doLSTM': True,
     'lstmWidth': 128,
     'depth': 4,
     'width': 128,
@@ -223,7 +225,7 @@ model.summary()
 
 history = model.fit(X_train, Y_train,
                     batch_size = 20000, 
-                    epochs = 1000, 
+                    epochs = 1000,
                     verbose = 1,
                     validation_split = 0.1,
                     shuffle = True,
@@ -233,7 +235,10 @@ history = model.fit(X_train, Y_train,
 
 hname = '{}/history.json'.format(outDir)
 with open(hname,'w') as f:
-    json.dump(history.history,f)
+    h = history.history
+    for k in h:
+        h[k] = [float(x) for x in h[k]]
+    json.dump(h,f)
 
 # plot loss and accurancy
 loss = history.history['loss']

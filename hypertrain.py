@@ -295,7 +295,6 @@ def train_model(model, X_train, X_test, Y_train, Y_test, W_train, W_test, hypers
     return result
 
 
-
 def prepare_optimize_model():
     X_train, X_test, Y_train, Y_test, W_train, W_test = load_data()
     input_shapes = [X_test[i].shape[1:] for i in range(nx)]
@@ -315,7 +314,7 @@ callbacks = [
 ]
 
 modelArgs = {
-    'doLSTM': False,
+    'doLSTM': True,
     'lstmWidth': 128,
     'depth': 4,
     'width': 128,
@@ -328,10 +327,12 @@ modelArgs = {
 }
 
 hyperspace = {
-    'doLSTM': hp.choice('doLSTM',[
-        (True, hp.quniform('lstmWidth',32,256,1)),
-        (False, 0)
-    ]),
+    #'doLSTM': hp.choice('doLSTM',[
+    #    (True, hp.quniform('lstmWidth',32,256,1)),
+    #    (False, 0)
+    #]),
+    'doLSTM': hp.choice('doLSTM',[True]),
+    'lstmWidfth': hp.quniform('lstmWidth',32,256,1),
     'depth': hp.quniform('depth',1,8,1),
     'width': hp.quniform('width',32,256,1),
     #'batchnorm': hp.choice('batchnorm',[
@@ -345,7 +346,7 @@ hyperspace = {
     'dropoutRate': hp.choice('dropoutRate',[0.2]),
     'lr': hp.loguniform('lr',-12,-5),
     #'epochs': hp.quniform('epochs',10,400,1),
-    'epochs': hp.choice('epochs',[20]),
+    'epochs': hp.choice('epochs',[40]),
 }
 
 if optimize:

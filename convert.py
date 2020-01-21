@@ -54,6 +54,8 @@ for r, d, f in os.walk(inDir):
             fnames += [os.path.join(r,fname)]
 
 fnames = [fname for fname in fnames if 'JpsiToMuMu_JpsiPt8_TuneCP5_14TeV-pythia8' not in fname]
+if not doElectron:
+    fnames = [fname for fname in fnames if 'Eleplusandminus' not in fname]
 logging.info('Will convert {} files'.format(len(fnames)))
 
 treename = 'deepMuonTree/DeepMuonTree'
@@ -176,7 +178,8 @@ with tqdm(unit='files', total=len(fnames), desc='Calculating weights') as pbar:
                     | (abs(arrays['muon_gen_sim_pdgId'])==211))
             arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
             arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
-            arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
+            if doElectron:
+                arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
     
             for truth in out_truth:
                 hist, xedges, yedges = np.histogram2d(
@@ -338,7 +341,8 @@ def convert_fname(fname,i):
             arrays[key] = arrays[key][keep]
         arrays['muon'] = (abs(arrays['muon_gen_sim_pdgId'])==13)
         arrays['pion'] = (abs(arrays['muon_gen_sim_pdgId'])==211)
-        arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
+        if doElectron:
+            arrays['electron'] = (abs(arrays['muon_gen_sim_pdgId'])==11)
 
         # calculate weight
         arrays = weighting(arrays)
@@ -346,12 +350,12 @@ def convert_fname(fname,i):
         # transform
         arrays = transform(arrays)
 
-        # zero pad and truncate
-        arrays = padtruncate(arrays)
-    
         # normalize
         arrays = normalize(arrays)
 
+        # zero pad and truncate
+        arrays = padtruncate(arrays)
+    
         # convert to numpy
         def get_output(arrays,out_truth,selection=None):
             if selection is None:
